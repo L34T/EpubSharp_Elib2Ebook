@@ -40,7 +40,7 @@ namespace EpubSharp.Format
     public enum EpubVersion
     {
         Epub2 = 2,
-        Epub3
+        Epub3 = 3
     }
     
     public class OpfDocument
@@ -211,6 +211,7 @@ namespace EpubSharp.Format
         public string Property { get; internal set; }
         public string Scheme { get; internal set; }
         public string Text { get; internal set; }
+        public string Content { get; internal set; }
     }
 
     public class OpfManifest

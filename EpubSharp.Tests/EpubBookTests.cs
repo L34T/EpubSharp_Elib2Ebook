@@ -11,7 +11,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void EpubAsPlainTextTest1()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/boothbyg3249432494-8epub.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"C:/Bogtyven.epub"));
             //File.WriteAllText(Cwd.Join("Samples/epub-assorted/boothbyg3249432494-8epub.txt", book.ToPlainText()));
 
             Func<string, string> normalize = text => text.Replace("\r", "").Replace("\n", "").Replace(" ", "");

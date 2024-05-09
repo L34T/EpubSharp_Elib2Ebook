@@ -10,7 +10,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void CanWriteTest()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/Inversions - Iain M. Banks.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"c://Bogtyven.epub"));
             var writer = new EpubWriter(book);
             writer.Write(new MemoryStream());
         }
@@ -96,7 +96,7 @@ namespace EpubSharp.Tests
         public void SetCoverTest()
         {
             var writer = new EpubWriter();
-            writer.SetCover(File.ReadAllBytes(Cwd.Combine("Cover.png")), ImageFormat.Png);
+            writer.SetCover(File.ReadAllBytes(Cwd.Combine("c://Cover.png")), ImageFormat.Png);
 
             var epub = WriteAndRead(writer);
 
@@ -107,7 +107,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void RemoveCoverTest()
         {
-            var epub1 = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/Inversions - Iain M. Banks.epub"));
+            var epub1 = EpubReader.Read(Cwd.Combine(@"c://Bogtyven.epub"));
 
             var writer = new EpubWriter(EpubWriter.MakeCopy(epub1));
             writer.RemoveCover();
@@ -173,7 +173,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void ClearBogtyvenChaptersTest()
         {
-            var writer = new EpubWriter(EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/bogtyven.epub")));
+            var writer = new EpubWriter(EpubReader.Read(Cwd.Combine("C:/Bogtyven.epub")));
             writer.ClearChapters();
 
             var epub = WriteAndRead(writer);

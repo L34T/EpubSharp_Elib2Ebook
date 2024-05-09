@@ -14,7 +14,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void ReadBogtyvenFormatTest()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"Samples/Bogtyven.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"C:/Bogtyven.epub"));
             var format = book.Format;
 
             Assert.NotNull(format);
@@ -301,7 +301,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void ReadIOSHackersHandbookTest()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"c:/iOS Hackers Handbook.epub"));
             book.TableOfContents.Should().HaveCount(14);
             book.TableOfContents.SelectMany(e => e.SubChapters).Concat(book.TableOfContents).Should().HaveCount(78);
             book.TableOfContents[0].AbsolutePath.Should().Be("/OEBPS/9781118240755cover.xhtml");
@@ -313,7 +313,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void SetsChapterParents()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"C:/iOS Hackers Handbook.epub"));
 
             foreach (var chapter in book.TableOfContents)
             {
@@ -325,7 +325,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void SetsChapterPreviousNext()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"C:/iOS Hackers Handbook.epub"));
 
             EpubChapter previousChapter = null;
             var currentChapter = book.TableOfContents[0];

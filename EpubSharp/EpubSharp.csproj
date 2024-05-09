@@ -1,18 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>netcoreapp1.1;netstandard1.3;net451</TargetFrameworks>
+    <TargetFramework>net8.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Arvydas Sidorenko</Authors>
-    <PackageTags>epub epubs book books 2.0 3.0 3.1</PackageTags>
+    <PackageTags>epub epubs book books 8.0</PackageTags>
     <PackageId>EpubSharp.dll</PackageId>
-    <Version>1.1.5.13</Version>
+    <Version>1.1.6</Version>
     <Description>A library for reading and writing EPUB files.</Description>
     <PackageIconUrl>https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/EPUB_silk_icon.svg/2000px-EPUB_silk_icon.svg.png</PackageIconUrl>
     <PackageProjectUrl>https://github.com/Asido/EpubSharp/</PackageProjectUrl>
-    <Copyright>Copyright 2018</Copyright>
-    <AssemblyVersion>1.1.5.13</AssemblyVersion>
-    <FileVersion>1.1.5.13</FileVersion>
+    <Copyright>Copyright 2024</Copyright>
+    <AssemblyVersion>1.1.6</AssemblyVersion>
+    <FileVersion>1.1.6</FileVersion>
   </PropertyGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net451'">
