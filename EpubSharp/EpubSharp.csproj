@@ -4,7 +4,7 @@
         <TargetFramework>net9.0</TargetFramework>
         <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
         <Authors>Arvydas Sidorenko</Authors>
-        <PackageTags>epub epubs book books 8.0</PackageTags>
+        <PackageTags>epub epubs book books 9.0</PackageTags>
         <PackageId>EpubSharp.dll</PackageId>
         <Version>1.1.6</Version>
         <Description>A library for reading and writing EPUB files.</Description>
@@ -16,14 +16,12 @@
         <Copyright>Copyright 2024</Copyright>
         <AssemblyVersion>1.1.6</AssemblyVersion>
         <FileVersion>1.1.6</FileVersion>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
-
-    <ItemGroup Condition="'$(TargetFramework)' == 'net451'">
-        <Reference Include="System.IO.Compression"/>
-    </ItemGroup>
 
     <ItemGroup>
         <None Include="EPUB_silk_icon.svg.png" Pack="true" PackagePath=""/>
+        <None Include="..\README.md" Pack="true" PackagePath="\"/>
     </ItemGroup>
 
 </Project>

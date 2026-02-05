@@ -113,7 +113,14 @@ namespace EpubSharp.Format.Readers
             {
                 return EpubVersion.Epub2;
             }
-            if (version == "3.0" || version == "3.0.1" || version == "3.1")
+            if (
+                version == "3.0"      // 2011
+                || version == "3.0.1" // 2014
+                || version == "3.1"   // 2017
+                || version == "3.2"   // 2019
+                || version == "3.3"   // 2023
+                || version == "3.4"   // 2026
+            )
             {
                 return EpubVersion.Epub3;
             }

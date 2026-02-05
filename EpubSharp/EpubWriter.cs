@@ -1,18 +1,25 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using EpubSharp.Extensions;
 using EpubSharp.Format;
 using EpubSharp.Format.Writers;
 using EpubSharp.Misc;
+#pragma warning disable CS4014 // Because this call is not awaited, execution of the current method continues before the call is completed
 
 namespace EpubSharp
 {
     public enum ImageFormat
     {
-        Gif, Png, Jpeg, Svg
+        Gif, Png, Jpeg, Svg,
+        Webp, // epub3.3 . 2023
+        Avif, // epub3.4, 2026
+        Jxl // epub3.4, 2026
     }
 
     public class EpubWriter
@@ -54,6 +61,7 @@ namespace EpubSharp
             resources = new EpubResources();
         }
 
+        [Obsolete("Seems to be removed in Elib2Ebook")]
         public EpubWriter(EpubBook book)
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
@@ -74,6 +82,7 @@ namespace EpubSharp
             }
         }
 
+        [Obsolete("Seems to be removed in Elib2Ebook")]
         public static void Write(EpubBook book, string filename)
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
@@ -83,6 +92,7 @@ namespace EpubSharp
             writer.Write(filename);
         }
 
+        [Obsolete("Seems to be removed in Elib2Ebook")]
         public static void Write(EpubBook book, Stream stream)
         {
             if (book == null) throw new ArgumentNullException(nameof(book));
@@ -97,6 +107,7 @@ namespace EpubSharp
         /// </summary>
         /// <param name="book"></param>
         /// <returns></returns>
+        [Obsolete("Seems to be removed in Elib2Ebook")]
         public static EpubBook MakeCopy(EpubBook book)
         {
             var stream = new MemoryStream();
@@ -167,6 +178,18 @@ namespace EpubSharp
             if (string.IsNullOrWhiteSpace(author)) throw new ArgumentNullException(nameof(author));
             format.Opf.Metadata.Creators.Add(new OpfMetadataCreator { Text = author });
         }
+        
+        public void AddDescription(string description)
+        {
+            if (string.IsNullOrWhiteSpace(description)) throw new ArgumentNullException("description");
+            format.Opf.Metadata.Descriptions.Add(description);
+        }
+        
+        public void AddLanguage(string lang)
+        {
+            if (string.IsNullOrWhiteSpace(lang)) throw new ArgumentNullException("lang");
+            format.Opf.Metadata.Languages.Add(lang);
+        }
 
         public void ClearAuthors()
         {
@@ -185,6 +208,32 @@ namespace EpubSharp
         public void RemoveTitle()
         {
             format.Opf.Metadata.Titles.Clear();
+        }
+        
+        public void AddCollection(string name, string number)
+        {
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("name");
+            format.Opf.Metadata.Metas.Add(new OpfMetadataMeta
+            {
+                Property = "belongs-to-collection",
+                Id = "collection",
+                Text = name
+            });
+            format.Opf.Metadata.Metas.Add(new OpfMetadataMeta
+            {
+                Refines = "#collection",
+                Property = "collection-type",
+                Text = "set"
+            });
+            if (!string.IsNullOrWhiteSpace(number))
+            {
+                format.Opf.Metadata.Metas.Add(new OpfMetadataMeta
+                {
+                    Refines = "#collection",
+                    Property = "group-position",
+                    Text = number
+                });
+            }
         }
 
         public void SetTitle(string title)
@@ -239,6 +288,7 @@ namespace EpubSharp
             };
         }
 
+        [Obsolete("Seems to be removed in Elib2Ebook")]
         public void ClearChapters()
         {
             var spineItems = format.Opf.Spine.ItemRefs.Select(spine => format.Opf.Manifest.Items.Single(e => e.Id == spine.IdRef));
@@ -318,8 +368,21 @@ namespace EpubSharp
                     filename = "cover.svg";
                     type = EpubContentType.ImageSvg;
                     break;
+                case ImageFormat.Webp:
+                    filename = "cover.webp";
+                    type = EpubContentType.ImageWebp;
+                    break;
                 default:
                     throw new ArgumentException($"Unsupported cover format: {format}", nameof(format));
+                // TODO: epub3.4 still in draft for now and image/avif image/jxl not implemented yet in readers
+                // case ImageFormat.Avif:
+                //     filename = "cover.avif";
+                //     type = EpubContentType.ImageAvif;
+                //     break;
+                // case ImageFormat.Jxl:
+                //     filename = "cover.jxl";
+                //     type = EpubContentType.ImageJxl;
+                //     break;
             }
 
             var coverResource = new EpubByteFile
@@ -346,6 +409,7 @@ namespace EpubSharp
             });
         }
 
+        [Obsolete("Seems to be not used anymore", true)]
         public byte[] Write()
         {
             var stream = new MemoryStream();
@@ -354,6 +418,7 @@ namespace EpubSharp
             return stream.ReadToEnd();
         }
         
+        [Obsolete("Seems to be removed in Elib2Ebook")]
         public void Write(string filename)
         {
             using (var file = File.Create(filename))
@@ -362,6 +427,8 @@ namespace EpubSharp
             }
         }
 
+        // TODO: remove `#pragma warning disable CS4014` when this sync `Write(Stream stream)` method removed
+        [Obsolete("Seems to be removed in Elib2Ebook", true)]
         public void Write(Stream stream)
         {
             using (var archive = new ZipArchive(stream, ZipArchiveMode.Create, true))
@@ -389,6 +456,59 @@ namespace EpubSharp
                     var absolutePath = PathExt.Combine(relativePath, file.Href);
                     archive.CreateEntry(absolutePath, file.Content);
                 }
+            }
+        }
+        
+        public async Task Write(string filename, IEnumerable<FileMeta> files)
+        {
+            using var file = File.Create(filename);
+            await Write(file, files);
+        }
+        
+        public async Task Write(Stream stream, IEnumerable<FileMeta> files)
+        {
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Create, true, Encoding.UTF8);
+    
+            // Создание директорий (EPUB/ и META-INF/)
+            archive.CreateEntry("EPUB/");
+            archive.CreateEntry("META-INF/");
+    
+            string relativePath = PathExt.GetDirectoryPath(this.opfPath);
+    
+            // mimetype (без сжатия, по стандарту EPUB)
+            await archive.CreateEntry("mimetype", MimeTypeWriter.Format());
+    
+            // container.xml
+            await archive.CreateEntry("META-INF/container.xml", OcfWriter.Format(this.opfPath));
+    
+            // OPF
+            await archive.CreateEntry(this.opfPath, OpfWriter.Format(this.format.Opf));
+    
+            // NCX (если есть)
+            if (this.format.Ncx != null)
+            {
+                await archive.CreateEntry(this.ncxPath, NcxWriter.Format(this.format.Ncx));
+            }
+    
+            // Внутренние ресурсы (HTML/CSS/etc)
+            var allFiles = new[]
+            {
+                this.resources.Html.Cast<EpubFile>(),
+                this.resources.Css,
+                this.resources.Images,
+                this.resources.Fonts,
+                this.resources.Other
+            }.SelectMany(collection => (collection as EpubFile[]) ?? collection.ToArray<EpubFile>());
+    
+            foreach (var file in allFiles)
+            {
+                await archive.CreateEntry(PathExt.Combine(relativePath, file.Href), file.Content);
+            }
+    
+            // Дополнительные файлы (FileMeta)
+            foreach (var fileMeta in files)
+            {
+                await archive.CreateEntryByPath(PathExt.Combine(relativePath, fileMeta.Name), fileMeta.Path);
             }
         }
 

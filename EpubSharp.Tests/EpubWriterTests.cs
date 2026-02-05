@@ -1,6 +1,8 @@
 ﻿using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 using EpubSharp.Format;
+using FluentAssertions;
 using Xunit;
 
 namespace EpubSharp.Tests
@@ -8,17 +10,22 @@ namespace EpubSharp.Tests
     public class EpubWriterTests
     {
         [Fact]
-        public void CanWriteTest()
+        public async Task CanWriteTest()  // async Task вместо void
         {
             var book = EpubReader.Read(Cwd.Combine(TestFiles.SampleEpubPath));
             var writer = new EpubWriter(book);
-            writer.Write(new MemoryStream());
+    
+            using var stream = new MemoryStream();
+            await writer.Write(stream, Enumerable.Empty<FileMeta>());  // новый async overload
+    
+            // Проверяем, что записалось (не пустой)
+            stream.Position.Should().BeGreaterThan(0);
         }
 
         [Fact]
-        public void CanCreateEmptyEpubTest()
+        public async Task CanCreateEmptyEpubTest()
         {
-            var epub = WriteAndRead(new EpubWriter());
+            var epub = await WriteAndReadAsync(new EpubWriter());
 
             Assert.Null(epub.Title);
             Assert.Empty(epub.Authors);
@@ -43,29 +50,29 @@ namespace EpubSharp.Tests
         }
 
         [Fact]
-        public void AddRemoveAuthorTest()
+        public async Task AddRemoveAuthorTest()
         {
             var writer = new EpubWriter();
 
             writer.AddAuthor("Foo Bar");
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
             Assert.Single(epub.Authors);
 
             writer.AddAuthor("Zoo Gar");
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Equal(2, epub.Authors.Count());
 
             writer.RemoveAuthor("Foo Bar");
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Single(epub.Authors);
             Assert.Equal("Zoo Gar", epub.Authors.First());
 
             writer.RemoveAuthor("Unexisting");
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Single(epub.Authors);
 
             writer.ClearAuthors();
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Empty(epub.Authors);
 
             writer.RemoveAuthor("Unexisting");
@@ -73,46 +80,46 @@ namespace EpubSharp.Tests
         }
 
         [Fact]
-        public void AddRemoveTitleTest()
+        public async Task AddRemoveTitleTest()
         {
             var writer = new EpubWriter();
 
             writer.SetTitle("Title1");
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
             Assert.Equal("Title1", epub.Title);
 
             writer.SetTitle("Title2");
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Equal("Title2", epub.Title);
 
             writer.RemoveTitle();
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Null(epub.Title);
 
             writer.RemoveTitle();
         }
 
         [Fact(Skip = "Временно отключен: WIP")]
-        public void SetCoverTest()
+        public async Task SetCoverTest()
         {
             var writer = new EpubWriter();
             writer.SetCover(File.ReadAllBytes(Cwd.Combine("c://Cover.png")), ImageFormat.Png);
 
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
 
             Assert.Single(epub.Resources.Images);
             Assert.NotNull(epub.CoverImage);
         }
 
         [Fact(Skip = "Временно отключен: WIP")]
-        public void RemoveCoverTest()
+        public async Task RemoveCoverTest()
         {
             var epub1 = EpubReader.Read(Cwd.Combine(TestFiles.SampleEpubPath));
 
             var writer = new EpubWriter(EpubWriter.MakeCopy(epub1));
             writer.RemoveCover();
 
-            var epub2 = WriteAndRead(writer);
+            var epub2 = await WriteAndReadAsync(writer);
 
             Assert.NotNull(epub1.CoverImage);
             Assert.Null(epub2.CoverImage);
@@ -128,7 +135,7 @@ namespace EpubSharp.Tests
         }
 
         [Fact]
-        public void CanAddChapterTest()
+        public async Task CanAddChapterTest()
         {
             var writer = new EpubWriter();
             var chapters = new[]
@@ -136,7 +143,7 @@ namespace EpubSharp.Tests
                 writer.AddChapter("Chapter 1", "bla bla bla"),
                 writer.AddChapter("Chapter 2", "foo bar")
             };
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
 
             Assert.Equal("Chapter 1", chapters[0].Title);
             Assert.Equal("Chapter 2", chapters[1].Title);
@@ -153,42 +160,42 @@ namespace EpubSharp.Tests
         }
 
         [Fact]
-        public void ClearChaptersTest()
+        public async Task ClearChaptersTest()
         {
             var writer = new EpubWriter();
             writer.AddChapter("Chapter 1", "bla bla bla");
             writer.AddChapter("Chapter 2", "foo bar");
             writer.AddChapter("Chapter 3", "fooz barz");
 
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
             Assert.Equal(3, epub.TableOfContents.Count);
 
             writer = new EpubWriter(epub);
             writer.ClearChapters();
             
-            epub = WriteAndRead(writer);
+            epub = await WriteAndReadAsync(writer);
             Assert.Empty(epub.TableOfContents);
         }
 
         [Fact]
-        public void ClearBogtyvenChaptersTest()
+        public async Task ClearBogtyvenChaptersTest()
         {
             var writer = new EpubWriter(EpubReader.Read(Cwd.Combine(TestFiles.SampleEpubPath)));
             writer.ClearChapters();
 
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
             Assert.Empty(epub.TableOfContents);
         }
 
         [Fact]
-        public void AddFileTest()
+        public async Task AddFileTest()
         {
             var writer = new EpubWriter();
             writer.AddFile("style.css", "body {}", EpubContentType.Css);
             writer.AddFile("img.jpeg", new byte[] { 0x42 }, EpubContentType.ImageJpeg);
             writer.AddFile("font.ttf", new byte[] { 0x24 }, EpubContentType.FontTruetype);
 
-            var epub = WriteAndRead(writer);
+            var epub = await WriteAndReadAsync(writer);
 
             Assert.Single(epub.Resources.Css);
             Assert.Equal("style.css", epub.Resources.Css.First().Href);
@@ -205,10 +212,11 @@ namespace EpubSharp.Tests
             Assert.Equal(0x24, epub.Resources.Fonts.First().Content.First());
         }
 
-        private EpubBook WriteAndRead(EpubWriter writer)
+        private async Task<EpubBook> WriteAndReadAsync(EpubWriter writer)  // async Task
         {
-            var stream = new MemoryStream();
-            writer.Write(stream);
+            using var stream = new MemoryStream();
+            await writer.Write(stream, Enumerable.Empty<FileMeta>());
+
             stream.Seek(0, SeekOrigin.Begin);
             var epub = EpubReader.Read(stream, false);
             return epub;

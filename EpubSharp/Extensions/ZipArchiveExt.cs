@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using EpubSharp.Format;
@@ -11,19 +12,21 @@ namespace EpubSharp.Extensions
 {
     public static class ZipArchiveExt
     {
-        public static void CreateEntry(this ZipArchive archive, string file, string content)
+        public static async Task CreateEntry(this ZipArchive archive, string file, string content)
         {
             var data = Constants.DefaultEncoding.GetBytes(content);
-            archive.CreateEntry(file, data);
+            await archive.CreateEntry(file, data);
         }
 
-        public static void CreateEntry(this ZipArchive archive, string file, byte[] data)
+        public static async Task CreateEntry(this ZipArchive archive, string file, byte[] data)
         {
             var entry = archive.CreateEntry(file);
-            using (var stream = entry.Open())
-            {
-                stream.Write(data, 0, data.Length);
-            }
+            await using var stream = entry.Open();
+            await stream.WriteAsync(data, 0, data.Length);
+            // using (var stream = entry.Open())
+            // {
+            //     stream.Write(data, 0, data.Length);
+            // }
         }
         
         /// <summary>
@@ -37,6 +40,16 @@ namespace EpubSharp.Extensions
                 throw new EpubParseException($"{entryName} file not found in archive.");
             }
             return entry;
+        }
+        
+        
+        public static async Task CreateEntryByPath(this ZipArchive archive, string name, string path)
+        {
+            var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            using var fileStream = File.OpenRead(path);
+            using var entryStream = entry.Open();
+    
+            await fileStream.CopyToAsync(entryStream);
         }
 
         public static ZipArchiveEntry TryGetEntryImproved(this ZipArchive archive, string entryName)

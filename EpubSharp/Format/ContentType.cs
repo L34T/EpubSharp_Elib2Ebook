@@ -18,7 +18,10 @@ namespace EpubSharp.Format
         ImageSvg,
         FontTruetype,
         FontOpentype,
-        Other
+        Other,
+        ImageWebp,
+        ImageAvif,
+        ImageJxl
     }
 
     internal class ContentType
@@ -38,7 +41,11 @@ namespace EpubSharp.Format
             { "image/svg+xml", EpubContentType.ImageSvg },
             { "font/truetype", EpubContentType.FontTruetype },
             { "font/opentype", EpubContentType.FontOpentype },
-            { "application/vnd.ms-opentype", EpubContentType.FontOpentype }
+            { "application/vnd.ms-opentype", EpubContentType.FontOpentype },
+            
+            { "image/webp", EpubContentType.ImageWebp },
+            { "image/avif", EpubContentType.ImageAvif },
+            { "image/jxl", EpubContentType.ImageJxl }
         };
 
         public static readonly IReadOnlyDictionary<EpubContentType, string> ContentTypeToMimeType = MimeTypeToContentType
