@@ -1,4 +1,4 @@
-﻿namespace EpubSharp
+﻿namespace EpubSharp.Extensions
 {
     public static class StringExt
     {

@@ -5,8 +5,10 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using EpubSharp.Extensions;
 using EpubSharp.Format;
 using EpubSharp.Format.Readers;
+using EpubSharp.Misc;
 
 namespace EpubSharp
 {

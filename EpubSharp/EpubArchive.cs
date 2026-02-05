@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using EpubSharp.Extensions;
 using EpubSharp.Format;
 
 namespace EpubSharp

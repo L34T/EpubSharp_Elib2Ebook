@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Xml.Linq;
+using EpubSharp.Extensions;
 
 namespace EpubSharp.Format.Readers
 {
@@ -39,7 +40,7 @@ namespace EpubSharp.Format.Readers
                         Id = (string)elem.Attribute(NcxPageTarget.Attributes.Id),
                         Class = (string)elem.Attribute(NcxPageTarget.Attributes.Class),
                         Value = (string)elem.Attribute(NcxPageTarget.Attributes.Value),
-                        Type = (NcxPageTargetType?)(elem.Attribute(NcxPageTarget.Attributes.Type) == null ? null : Enum.Parse(typeof(NcxPageTargetType), (string)elem.Attribute("type"), true)),
+                        Type = (NcxPageTargetType?)(elem.Attribute(NcxPageTarget.Attributes.Type) == null ? null : Enum.Parse(typeof(NcxPageTargetType), ((string)elem.Attribute("type"))!, true)),
                         NavLabelText = elem.Element(NcxElements.NavLabel)?.Element(NcxElements.Text)?.Value,
                         ContentSrc = (string)elem.Element(NcxElements.Content)?.Attribute(NcxPageTarget.Attributes.ContentSrc)
                     })

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EpubSharp
+namespace EpubSharp.Misc
 {
     internal class Href
     {

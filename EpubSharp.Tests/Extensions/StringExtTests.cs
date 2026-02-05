@@ -1,4 +1,5 @@
-﻿using FluentAssertions;
+﻿using EpubSharp.Extensions;
+using FluentAssertions;
 using Xunit;
 
 namespace EpubSharp.Tests.Extensions

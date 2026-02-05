@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
+using EpubSharp.Extensions;
 
 namespace EpubSharp.Format.Readers
 {
@@ -83,7 +84,7 @@ namespace EpubSharp.Format.Readers
                         Href = (string) elem.Attribute(OpfManifestItem.Attributes.Href),
                         Id = (string) elem.Attribute(OpfManifestItem.Attributes.Id),
                         MediaType = (string) elem.Attribute(OpfManifestItem.Attributes.MediaType),
-                        Properties = ((string) elem.Attribute(OpfManifestItem.Attributes.Properties))?.Split(' ') ?? new string[0],
+                        Properties = ((string) elem.Attribute(OpfManifestItem.Attributes.Properties))?.Split(' ') ?? Array.Empty<string>(),
                         RequiredModules = (string) elem.Attribute(OpfManifestItem.Attributes.RequiredModules),
                         RequiredNamespace = (string) elem.Attribute(OpfManifestItem.Attributes.RequiredNamespace)
                     })

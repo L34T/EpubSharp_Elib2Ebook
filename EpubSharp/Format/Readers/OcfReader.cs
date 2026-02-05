@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Xml.Linq;
+using EpubSharp.Extensions;
 
 namespace EpubSharp.Format.Readers
 {

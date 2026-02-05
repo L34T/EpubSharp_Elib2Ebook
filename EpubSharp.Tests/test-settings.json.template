@@ -1,0 +1,6 @@
+﻿{
+  "TestData": {
+    "sampleEpubPath": "C:\\Bogtyven.epub",
+    "testRootDirectory": "D:\\Code\\EpubSharp\\EpubSharp.Tests"
+  }
+}

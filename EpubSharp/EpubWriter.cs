@@ -3,8 +3,10 @@ using System.IO;
 using System.IO.Compression;
 using System.Linq;
 using System.Xml.Linq;
+using EpubSharp.Extensions;
 using EpubSharp.Format;
 using EpubSharp.Format.Writers;
+using EpubSharp.Misc;
 
 namespace EpubSharp
 {

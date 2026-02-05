@@ -7,7 +7,7 @@ using System.Xml;
 using System.Xml.Linq;
 using EpubSharp.Format;
 
-namespace EpubSharp
+namespace EpubSharp.Extensions
 {
     public static class ZipArchiveExt
     {

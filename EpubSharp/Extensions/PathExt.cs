@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EpubSharp
+namespace EpubSharp.Extensions
 {
     internal static class PathExt
     {

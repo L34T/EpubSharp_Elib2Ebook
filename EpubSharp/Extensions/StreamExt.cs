@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace EpubSharp
+namespace EpubSharp.Extensions
 {
     internal static class StreamExt
     {

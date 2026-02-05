@@ -1,8 +1,7 @@
 ﻿using System;
-using System.Linq;
 using EpubSharp.Format;
 
-namespace EpubSharp
+namespace EpubSharp.Extensions
 {
     internal static class ByteArrayExt
     {
