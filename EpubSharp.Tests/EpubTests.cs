@@ -71,10 +71,8 @@ namespace EpubSharp.Tests
                 expected.Resources.Other.Where(e => e.Href != expected.Format.Opf.FindNcxPath()),
                 actual.Resources.Other.Where(e => e.Href != expected.Format.Opf.FindNcxPath())
             );
-            AssertCollection(expected.SpecialResources.HtmlInReadingOrder, actual.SpecialResources.HtmlInReadingOrder, (old, @new) =>
-            {
-                AssertContentFile(old, @new);
-            });
+            AssertCollection(expected.SpecialResources.HtmlInReadingOrder, actual.SpecialResources.HtmlInReadingOrder,
+                (old, @new) => { AssertContentFile(old, @new); });
 
             AssertCollection(expected.TableOfContents, actual.TableOfContents, AssertChapter);
 
@@ -84,7 +82,8 @@ namespace EpubSharp.Tests
             AssertNav(expected.Format.Nav, actual.Format.Nav);
         }
 
-        private void AssertCollectionWithIndex<T>(IEnumerable<T> expected, IEnumerable<T> actual, Action<List<T>, List<T>, int> assert)
+        private void AssertCollectionWithIndex<T>(IEnumerable<T> expected, IEnumerable<T> actual,
+            Action<List<T>, List<T>, int> assert)
         {
             Assert.Equal(expected == null, actual == null);
             if (expected != null && actual != null)
@@ -103,21 +102,16 @@ namespace EpubSharp.Tests
 
         private void AssertCollection<T>(IEnumerable<T> expected, IEnumerable<T> actual, Action<T, T> assert)
         {
-            AssertCollectionWithIndex(expected, actual, (a, b, i) =>
-            {
-                assert(a[i], b[i]);
-            });
+            AssertCollectionWithIndex(expected, actual, (a, b, i) => { assert(a[i], b[i]); });
         }
 
         private void AssertPrimitiveCollection<T>(IEnumerable<T> expected, IEnumerable<T> actual, string unitName)
         {
-            AssertCollectionWithIndex(expected, actual, (a, b, i) =>
-            {
-                Assert.True(a.Contains(b[i]), unitName);
-            });
+            AssertCollectionWithIndex(expected, actual, (a, b, i) => { Assert.True(a.Contains(b[i]), unitName); });
         }
 
-        private void AssertContentFileCollection<TContent>(Dictionary<string, TContent> expected, Dictionary<string, TContent> actual)
+        private void AssertContentFileCollection<TContent>(Dictionary<string, TContent> expected,
+            Dictionary<string, TContent> actual)
             where TContent : EpubFile
         {
             AssertCollection(expected, actual, (a, b) =>
@@ -130,10 +124,7 @@ namespace EpubSharp.Tests
         private void AssertContentFileCollection<TContent>(IEnumerable<TContent> expected, IEnumerable<TContent> actual)
             where TContent : EpubFile
         {
-            AssertCollection(expected, actual, (a, b) =>
-            {
-                AssertContentFile(a, b);
-            });
+            AssertCollection(expected, actual, (a, b) => { AssertContentFile(a, b); });
         }
 
         private void AssertContentFile(EpubFile expected, EpubFile actual)
@@ -226,7 +217,8 @@ namespace EpubSharp.Tests
                     });
 
                     AssertPrimitiveCollection(expected.Metadata.Coverages, actual.Metadata.Coverages, "Coverage");
-                    AssertPrimitiveCollection(expected.Metadata.Descriptions, actual.Metadata.Descriptions, "Description");
+                    AssertPrimitiveCollection(expected.Metadata.Descriptions, actual.Metadata.Descriptions,
+                        "Description");
                     AssertPrimitiveCollection(expected.Metadata.Languages, actual.Metadata.Languages, "Language");
                     AssertPrimitiveCollection(expected.Metadata.Publishers, actual.Metadata.Publishers, "Publisher");
                     AssertPrimitiveCollection(expected.Metadata.Relations, actual.Metadata.Relations, "Relation");

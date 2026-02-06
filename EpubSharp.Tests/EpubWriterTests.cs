@@ -10,14 +10,14 @@ namespace EpubSharp.Tests
     public class EpubWriterTests
     {
         [Fact]
-        public async Task CanWriteTest()  // async Task вместо void
+        public async Task CanWriteTest() // async Task вместо void
         {
             var book = EpubReader.Read(Cwd.Combine(TestFiles.SampleEpubPath));
             var writer = new EpubWriter(book);
-    
+
             using var stream = new MemoryStream();
-            await writer.Write(stream, Enumerable.Empty<FileMeta>());  // новый async overload
-    
+            await writer.Write(stream, []); // новый async overload
+
             // Проверяем, что записалось (не пустой)
             stream.Position.Should().BeGreaterThan(0);
         }
@@ -36,7 +36,7 @@ namespace EpubSharp.Tests
             Assert.Empty(epub.Resources.Images);
             Assert.Empty(epub.Resources.Fonts);
             Assert.Single(epub.Resources.Other); // ncx
-            
+
             Assert.Empty(epub.SpecialResources.HtmlInReadingOrder);
             Assert.NotNull(epub.SpecialResources.Ocf);
             Assert.NotNull(epub.SpecialResources.Opf);
@@ -172,7 +172,7 @@ namespace EpubSharp.Tests
 
             writer = new EpubWriter(epub);
             writer.ClearChapters();
-            
+
             epub = await WriteAndReadAsync(writer);
             Assert.Empty(epub.TableOfContents);
         }
@@ -212,7 +212,7 @@ namespace EpubSharp.Tests
             Assert.Equal(0x24, epub.Resources.Fonts.First().Content.First());
         }
 
-        private async Task<EpubBook> WriteAndReadAsync(EpubWriter writer)  // async Task
+        private async Task<EpubBook> WriteAndReadAsync(EpubWriter writer) // async Task
         {
             using var stream = new MemoryStream();
             await writer.Write(stream, Enumerable.Empty<FileMeta>());

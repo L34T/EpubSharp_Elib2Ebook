@@ -41,6 +41,7 @@ namespace EpubSharp
                 builder.Append(Html.GetContentAsPlainText(html.TextContent));
                 builder.Append('\n');
             }
+
             return builder.ToString().Trim();
         }
     }
@@ -58,10 +59,7 @@ namespace EpubSharp
         public EpubChapter Next { get; set; }
         public IList<EpubChapter> SubChapters { get; set; } = new List<EpubChapter>();
 
-        public override string ToString()
-        {
-            return $"Title: {Title}, Subchapter count: {SubChapters.Count}";
-        }
+        public override string ToString() => $"Title: {Title}, Subchapter count: {SubChapters.Count}";
     }
 
     public class EpubResources

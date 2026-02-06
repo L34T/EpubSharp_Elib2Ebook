@@ -46,6 +46,7 @@ namespace EpubSharp.Extensions
                     buffer = new byte[totalBytesRead];
                     Buffer.BlockCopy(readBuffer, 0, buffer, 0, totalBytesRead);
                 }
+                
                 return buffer;
             }
             finally

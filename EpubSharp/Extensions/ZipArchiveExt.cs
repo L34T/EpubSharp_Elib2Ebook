@@ -28,7 +28,7 @@ namespace EpubSharp.Extensions
             //     stream.Write(data, 0, data.Length);
             // }
         }
-        
+
         /// <summary>
         /// ZIP's are slash-side sensitive and ZIP's created on Windows and Linux can contain their own variation.
         /// </summary>
@@ -39,6 +39,7 @@ namespace EpubSharp.Extensions
             {
                 throw new EpubParseException($"{entryName} file not found in archive.");
             }
+
             return entry;
         }
         
@@ -46,9 +47,9 @@ namespace EpubSharp.Extensions
         public static async Task CreateEntryByPath(this ZipArchive archive, string name, string path)
         {
             var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
-            using var fileStream = File.OpenRead(path);
-            using var entryStream = entry.Open();
-    
+            await using var fileStream = File.OpenRead(path);
+            await using var entryStream = entry.Open();
+
             await fileStream.CopyToAsync(entryStream);
         }
 
@@ -58,7 +59,7 @@ namespace EpubSharp.Extensions
             // That is, they should not include a leading '/' character.
             // Therefore for performance reasons to maximize a match on first attempt
             // exclude it initially and try with a leading slash in the later attempts.
-            if (entryName.StartsWith("/") || entryName.StartsWith("\\"))
+            if (entryName.StartsWith('/') || entryName.StartsWith('\\'))
             {
                 entryName = entryName.Substring(1);
             }
@@ -78,10 +79,10 @@ namespace EpubSharp.Extensions
                 // Such epubs aren't common, but zip archives created on windows uses backslashes.
                 // That could happen if an epub is re-archived manually.
                 foreach (var newName in new[]
-                {
-                    entryName.Replace(@"\", "/"),
-                    entryName.Replace("/", @"\")
-                }.Where(newName => newName != entryName))
+                         {
+                             entryName.Replace(@"\", "/"),
+                             entryName.Replace("/", @"\")
+                         }.Where(newName => newName != entryName))
                 {
                     namesToTry.Add(newName);
                     namesToTry.Add(Uri.UnescapeDataString(newName));
@@ -133,7 +134,7 @@ namespace EpubSharp.Extensions
             var html = archive.LoadText(entryName);
             return LoadXDocumentWithoutDtd(html);
         }
-        
+
         /// <summary>
         /// Loads the given xml into an XDocument without loading external DTD definitions (which seems to not work in some cases).
         /// </summary>

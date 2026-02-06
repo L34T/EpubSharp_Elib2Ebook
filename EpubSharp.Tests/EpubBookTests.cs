@@ -49,7 +49,7 @@ namespace EpubSharp.Tests
             var expected = File.ReadAllText(Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.txt"));
             var actual = book.ToPlainText();
             Assert.Equal(normalize(expected), normalize(actual));
-            
+
             var trimmed = string.Join("\n", actual.Split('\n').Select(str => str.Trim()));
             Assert.Single(Regex.Matches(trimmed, "Chapter 1\niOS Security Basics"));
             Assert.Single(Regex.Matches(trimmed, "Chapter 2\niOS in the Enterprise"));
@@ -65,6 +65,6 @@ namespace EpubSharp.Tests
             Assert.Single(Regex.Matches(trimmed, "How This Book Is Organized"));
             Assert.Equal(2, Regex.Matches(trimmed, "Appendix: Resources").Count);
             Assert.Equal(2, Regex.Matches(trimmed, "Case Study: Pwn2Own 2010").Count);
-        }             
+        }
     }
 }

@@ -41,7 +41,7 @@ namespace EpubSharp.Format
         Epub2 = 2,
         Epub3 = 3
     }
-    
+
     public class OpfDocument
     {
         internal static class Attributes
@@ -80,7 +80,7 @@ namespace EpubSharp.Format
             Manifest.DeleteCoverItem(meta?.Text);
             return path;
         }
-        
+
         internal string FindNcxPath()
         {
             string path = null;
@@ -135,10 +135,7 @@ namespace EpubSharp.Format
         public IList<string> Rights { get; internal set; } = new List<string>();
         public IList<OpfMetadataMeta> Metas { get; internal set; } = new List<OpfMetadataMeta>();
 
-        internal OpfMetadataMeta FindCoverMeta()
-        {
-            return Metas.FirstOrDefault(metaItem => metaItem.Name == "cover");
-        }
+        internal OpfMetadataMeta FindCoverMeta() => Metas.FirstOrDefault(metaItem => metaItem.Name == "cover");
 
         internal OpfMetadataMeta FindAndDeleteCoverMeta()
         {
@@ -257,10 +254,7 @@ namespace EpubSharp.Format
         public string Fallback { get; internal set; }
         public string FallbackStyle { get; internal set; }
 
-        public override string ToString()
-        {
-            return $"Id: {Id}, Href = {Href}, MediaType = {MediaType}";
-        }
+        public override string ToString() => $"Id: {Id}, Href = {Href}, MediaType = {MediaType}";
     }
 
     public class OpfSpine
@@ -289,10 +283,7 @@ namespace EpubSharp.Format
         public string Id { get; internal set; }
         public IList<string> Properties { get; internal set; } = new List<string>();
 
-        public override string ToString()
-        {
-            return "IdRef: " + IdRef;
-        }
+        public override string ToString() => "IdRef: " + IdRef;
     }
 
     public class OpfGuide
@@ -313,9 +304,6 @@ namespace EpubSharp.Format
         public string Title { get; internal set; }
         public string Href { get; internal set; }
 
-        public override string ToString()
-        {
-            return $"Type: {Type}, Href: {Href}";
-        }
+        public override string ToString() => $"Type: {Type}, Href: {Href}";
     }
 }

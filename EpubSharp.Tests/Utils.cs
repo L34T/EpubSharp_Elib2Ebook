@@ -10,7 +10,7 @@ namespace EpubSharp.Tests
     {
         public static List<string> ZipAndCopyEpubs(string path)
         {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
 
             var destination = Path.Combine(Cwd.Combine("Samples"), Path.GetFileName(path));
             if (!Directory.Exists(destination))
@@ -29,6 +29,7 @@ namespace EpubSharp.Tests
                 {
                     ZipFile.CreateFromDirectory(source, archivePath);
                 }
+
                 archives.Add(archivePath);
             }
 
@@ -37,7 +38,7 @@ namespace EpubSharp.Tests
 
         public static List<string> CopyEpubs(string path)
         {
-            if (path == null) throw new ArgumentNullException(nameof(path));
+            ArgumentNullException.ThrowIfNull(path);
 
             var destination = Path.Combine(Cwd.Combine("Samples"), Path.GetFileName(path));
             if (!Directory.Exists(destination))
@@ -56,6 +57,7 @@ namespace EpubSharp.Tests
                 {
                     File.Copy(source, archivePath);
                 }
+
                 archives.Add(archivePath);
             }
 

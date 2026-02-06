@@ -51,7 +51,7 @@ namespace EpubSharp.Tests
             Assert.Equal("xhtml/copyright.xhtml", format.Opf.Guide.References.ElementAt(3).Href);
             Assert.Null(format.Opf.Guide.References.ElementAt(3).Title);
             Assert.Equal("copyright-page", format.Opf.Guide.References.ElementAt(3).Type);
-                      
+
             Assert.NotNull(format.Opf.Manifest);
             Assert.Equal(150, format.Opf.Manifest.Items.Count);
 
@@ -172,7 +172,8 @@ namespace EpubSharp.Tests
             Assert.Empty(format.Opf.Metadata.Relations);
 
             Assert.Single(format.Opf.Metadata.Rights);
-            Assert.Equal("All rights reserved Lindhardt og Ringhof Forlag A/S", format.Opf.Metadata.Rights.ElementAt(0));
+            Assert.Equal("All rights reserved Lindhardt og Ringhof Forlag A/S",
+                format.Opf.Metadata.Rights.ElementAt(0));
 
             Assert.Single(format.Opf.Metadata.Sources);
             Assert.Equal("urn:isbn:9788711359327", format.Opf.Metadata.Sources.ElementAt(0));
@@ -338,7 +339,7 @@ namespace EpubSharp.Tests
 
             EpubChapter nextChapter = null;
             currentChapter.Next.Should().Be(nextChapter);
-            
+
             for (var i = 1; i <= 77; ++i)
             {
                 nextChapter = currentChapter;
