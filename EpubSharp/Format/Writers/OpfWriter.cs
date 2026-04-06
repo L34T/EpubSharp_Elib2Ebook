@@ -17,12 +17,6 @@ namespace EpubSharp.Format.Writers
                 root.Add(new XAttribute(OpfDocument.Attributes.UniqueIdentifier, opf.UniqueIdentifier));
             }
 
-            // This attribute is required, but some books don't have it. So we leave it as it is.
-            if (!string.IsNullOrWhiteSpace(opf.UniqueIdentifier))
-            {
-                root.Add(new XAttribute(OpfDocument.Attributes.UniqueIdentifier, opf.UniqueIdentifier));
-            }
-
             string versionString;
             switch (opf.EpubVersion)
             {
