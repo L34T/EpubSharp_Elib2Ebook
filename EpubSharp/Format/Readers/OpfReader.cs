@@ -28,6 +28,7 @@ namespace EpubSharp.Format.Readers
 
             var package = new OpfDocument
             {
+                Prefixes = ParsePrefixes((string)xml.Root.Attribute(OpfDocument.Attributes.Prefix)),
                 UniqueIdentifier = (string)xml.Root.Attribute(OpfDocument.Attributes.UniqueIdentifier),
                 EpubVersion = epubVersion,
                 Metadata = new OpfMetadata
@@ -61,6 +62,17 @@ namespace EpubSharp.Format.Readers
                             ? (string)elem.Attribute(OpfMetadataMeta.Attributes.Content)
                             : elem.Value
                     }),
+                    Links = metadata?.Elements(OpfElements.Link).AsObjectList(elem => new OpfMetadataLink
+                    {
+                        Href = (string)elem.Attribute(OpfMetadataLink.Attributes.Href),
+                        HrefLang = (string)elem.Attribute(OpfMetadataLink.Attributes.HrefLang),
+                        Id = (string)elem.Attribute(OpfMetadataLink.Attributes.Id),
+                        MediaType = (string)elem.Attribute(OpfMetadataLink.Attributes.MediaType),
+                        Properties = ((string)elem.Attribute(OpfMetadataLink.Attributes.Properties))?
+                            .Split((char[])null, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>(),
+                        Refines = (string)elem.Attribute(OpfMetadataLink.Attributes.Refines),
+                        Rel = (string)elem.Attribute(OpfMetadataLink.Attributes.Rel)
+                    }) ?? new List<OpfMetadataLink>(),
                     Publishers = metadata?.Elements(OpfElements.Publisher).AsStringList(),
                     Relations = metadata?.Elements(OpfElements.Relation).AsStringList(),
                     Rights = metadata?.Elements(OpfElements.Rights).AsStringList(),
@@ -112,6 +124,32 @@ namespace EpubSharp.Format.Readers
             };
 
             return package;
+        }
+
+        private static IDictionary<string, string> ParsePrefixes(string prefixValue)
+        {
+            var result = new Dictionary<string, string>(StringComparer.Ordinal);
+            if (string.IsNullOrWhiteSpace(prefixValue)) return result;
+
+            var parts = prefixValue
+                .Split((char[])null, StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .ToArray();
+
+            for (var i = 0; i + 1 < parts.Length; i += 2)
+            {
+                var prefix = parts[i];
+                if (prefix.EndsWith(":", StringComparison.Ordinal))
+                {
+                    prefix = prefix.Substring(0, prefix.Length - 1);
+                }
+
+                var iri = parts[i + 1];
+                if (string.IsNullOrWhiteSpace(prefix) || string.IsNullOrWhiteSpace(iri)) continue;
+                result[prefix] = iri;
+            }
+
+            return result;
         }
 
         private static EpubVersion GetAndValidateVersion(string version)

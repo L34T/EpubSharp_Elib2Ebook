@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -11,6 +12,11 @@ namespace EpubSharp.Format.Writers
             var root = new XElement(OpfElements.Package);
             root.Add(new XAttribute("xmlns", Constants.OpfNamespace));
             root.Add(new XAttribute(XNamespace.Xmlns + "dc", Constants.OpfMetadataNamespace));
+
+            if (opf.Prefixes != null && opf.Prefixes.Any())
+            {
+                root.Add(new XAttribute(OpfDocument.Attributes.Prefix, FormatPrefixes(opf.Prefixes)));
+            }
 
             if (!string.IsNullOrWhiteSpace(opf.UniqueIdentifier))
             {
@@ -43,6 +49,14 @@ namespace EpubSharp.Format.Writers
 
             var xml = Constants.XmlDeclaration + "\n" + root;
             return xml;
+        }
+
+        private static string FormatPrefixes(IDictionary<string, string> prefixes)
+        {
+            return string.Join(" ", prefixes
+                .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Key) && !string.IsNullOrWhiteSpace(kvp.Value))
+                .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
+                .Select(kvp => $"{kvp.Key.Trim()}: {kvp.Value.Trim()}"));
         }
 
         private static XElement WriteMetadata(OpfMetadata metadata, EpubVersion version)
@@ -156,6 +170,49 @@ namespace EpubSharp.Format.Writers
                 if (!string.IsNullOrWhiteSpace(meta.Scheme))
                 {
                     element.Add(new XAttribute(OpfMetadataMeta.Attributes.Scheme, meta.Scheme));
+                }
+
+                root.Add(element);
+            }
+
+            foreach (var link in metadata.Links ?? Array.Empty<OpfMetadataLink>())
+            {
+                var element = new XElement(OpfElements.Link);
+
+                if (!string.IsNullOrWhiteSpace(link.Href))
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Href, link.Href));
+                }
+
+                if (!string.IsNullOrWhiteSpace(link.Rel))
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Rel, link.Rel));
+                }
+
+                if (!string.IsNullOrWhiteSpace(link.Refines))
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Refines, link.Refines));
+                }
+
+                if (!string.IsNullOrWhiteSpace(link.Id))
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Id, link.Id));
+                }
+
+                if (!string.IsNullOrWhiteSpace(link.MediaType))
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.MediaType, link.MediaType));
+                }
+
+                if (!string.IsNullOrWhiteSpace(link.HrefLang))
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.HrefLang, link.HrefLang));
+                }
+
+                if (link.Properties != null && link.Properties.Any())
+                {
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Properties,
+                        string.Join(" ", link.Properties)));
                 }
 
                 root.Add(element);

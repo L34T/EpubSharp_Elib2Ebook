@@ -245,6 +245,80 @@ namespace EpubSharp
             }
         }
 
+        public bool TrySetSeriesUrl(string seriesUrl)
+        {
+            const string prefix = "todo";
+            const string prefixIri = "https://github.com/todo/todo/tree/stable/epub/";
+            const string rel = "todo:series-url";
+
+            if (string.IsNullOrWhiteSpace(seriesUrl)) return false;
+            if (!seriesUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase)) return false;
+
+            var hasCollection = format.Opf.Metadata.Metas.Any(meta =>
+                meta.Property == "belongs-to-collection" && meta.Id == "collection");
+            if (!hasCollection) return false;
+
+            format.Opf.Prefixes ??= new Dictionary<string, string>(StringComparer.Ordinal);
+            format.Opf.Prefixes[prefix] = prefixIri;
+
+            UpsertSeriesUrlLink(seriesUrl, rel);
+            UpsertSeriesIdentifier(seriesUrl);
+
+            return true;
+        }
+
+        private void UpsertSeriesUrlLink(string seriesUrl, string rel)
+        {
+            format.Opf.Metadata.Links ??= new List<OpfMetadataLink>();
+            var links = format.Opf.Metadata.Links;
+            var matching = links
+                .Where(l => l.Refines == "#collection" && l.Rel == rel)
+                .ToList();
+
+            if (matching.Count == 0)
+            {
+                links.Add(new OpfMetadataLink
+                {
+                    Refines = "#collection",
+                    Rel = rel,
+                    Href = seriesUrl
+                });
+                return;
+            }
+
+            matching[0].Href = seriesUrl;
+            foreach (var extra in matching.Skip(1))
+            {
+                links.Remove(extra);
+            }
+        }
+
+        private void UpsertSeriesIdentifier(string seriesUrl)
+        {
+            format.Opf.Metadata.Metas ??= new List<OpfMetadataMeta>();
+            var metas = format.Opf.Metadata.Metas;
+            var matching = metas
+                .Where(m => m.Refines == "#collection" && m.Property == "dcterms:identifier")
+                .ToList();
+
+            if (matching.Count == 0)
+            {
+                metas.Add(new OpfMetadataMeta
+                {
+                    Refines = "#collection",
+                    Property = "dcterms:identifier",
+                    Text = seriesUrl
+                });
+                return;
+            }
+
+            matching[0].Text = seriesUrl;
+            foreach (var extra in matching.Skip(1))
+            {
+                metas.Remove(extra);
+            }
+        }
+
         public void SetTitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentNullException(nameof(title));

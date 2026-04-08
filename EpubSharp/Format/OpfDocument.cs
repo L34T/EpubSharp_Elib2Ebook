@@ -17,6 +17,7 @@ namespace EpubSharp.Format
         public static readonly XName Format = Constants.OpfMetadataNamespace + "format";
         public static readonly XName Identifier = Constants.OpfMetadataNamespace + "identifier";
         public static readonly XName Language = Constants.OpfMetadataNamespace + "language";
+        public static readonly XName Link = Constants.OpfNamespace + "link";
         public static readonly XName Meta = Constants.OpfNamespace + "meta";
         public static readonly XName Publisher = Constants.OpfMetadataNamespace + "publisher";
         public static readonly XName Relation = Constants.OpfMetadataNamespace + "relation";
@@ -46,12 +47,14 @@ namespace EpubSharp.Format
     {
         internal static class Attributes
         {
+            public static readonly XName Prefix = "prefix";
             public static readonly XName UniqueIdentifier = "unique-identifier";
             public static readonly XName Version = "version";
         }
 
         public string UniqueIdentifier { get; internal set; }
         public EpubVersion EpubVersion { get; internal set; }
+        public IDictionary<string, string> Prefixes { get; internal set; } = new Dictionary<string, string>();
         public OpfMetadata Metadata { get; internal set; } = new OpfMetadata();
         public OpfManifest Manifest { get; internal set; } = new OpfManifest();
         public OpfSpine Spine { get; internal set; } = new OpfSpine();
@@ -134,6 +137,7 @@ namespace EpubSharp.Format
         public IList<string> Coverages { get; internal set; } = new List<string>();
         public IList<string> Rights { get; internal set; } = new List<string>();
         public IList<OpfMetadataMeta> Metas { get; internal set; } = new List<OpfMetadataMeta>();
+        public IList<OpfMetadataLink> Links { get; internal set; } = new List<OpfMetadataLink>();
 
         internal OpfMetadataMeta FindCoverMeta() => Metas.FirstOrDefault(metaItem => metaItem.Name == "cover");
 
@@ -208,6 +212,28 @@ namespace EpubSharp.Format
         public string Scheme { get; internal set; }
         public string Text { get; internal set; }
         public string Content { get; internal set; }
+    }
+
+    public class OpfMetadataLink
+    {
+        internal static class Attributes
+        {
+            public static readonly XName Href = "href";
+            public static readonly XName HrefLang = "hreflang";
+            public static readonly XName Id = "id";
+            public static readonly XName MediaType = "media-type";
+            public static readonly XName Properties = "properties";
+            public static readonly XName Refines = "refines";
+            public static readonly XName Rel = "rel";
+        }
+
+        public string Href { get; internal set; }
+        public string HrefLang { get; internal set; }
+        public string Id { get; internal set; }
+        public string MediaType { get; internal set; }
+        public IList<string> Properties { get; internal set; } = new List<string>();
+        public string Refines { get; internal set; }
+        public string Rel { get; internal set; }
     }
 
     public class OpfManifest
