@@ -54,6 +54,7 @@ namespace EpubSharp.Format
 
         public string UniqueIdentifier { get; internal set; }
         public EpubVersion EpubVersion { get; internal set; }
+        public string PackageVersion { get; internal set; }
         public IDictionary<string, string> Prefixes { get; internal set; } = new Dictionary<string, string>();
         public OpfMetadata Metadata { get; internal set; } = new OpfMetadata();
         public OpfManifest Manifest { get; internal set; } = new OpfManifest();

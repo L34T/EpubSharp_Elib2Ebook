@@ -39,7 +39,8 @@ namespace EpubSharp
             var opf = new OpfDocument
             {
                 UniqueIdentifier = Guid.NewGuid().ToString("D"),
-                EpubVersion = EpubVersion.Epub3
+                EpubVersion = EpubVersion.Epub3,
+                PackageVersion = "3.2"
             };
 
             opf.UniqueIdentifier = Constants.DefaultOpfUniqueIdentifier;
@@ -50,7 +51,14 @@ namespace EpubSharp
             {
                 Id = "ncx", Href = "toc.ncx", MediaType = ContentType.ContentTypeToMimeType[EpubContentType.DtbookNcx]
             });
-            opf.Spine.Toc = "ncx";
+
+            opf.Manifest.Items.Add(new OpfManifestItem
+            {
+                Id = "nav",
+                Href = "nav.xhtml",
+                MediaType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11],
+                Properties = new List<string> { "nav" }
+            });
 
             format = new EpubFormat
             {
@@ -59,15 +67,24 @@ namespace EpubSharp
                 Ncx = new NcxDocument()
             };
 
-            format.Nav.Head.Dom = new XElement(NavElements.Head);
+            format.Nav.Head.Dom = new XElement(Constants.XhtmlNamespace + NavElements.Head);
             format.Nav.Body.Dom =
                 new XElement(
-                    NavElements.Body,
-                    new XElement(NavElements.Nav,
+                    Constants.XhtmlNamespace + NavElements.Body,
+                    new XElement(Constants.XhtmlNamespace + NavElements.Nav,
                         new XAttribute(NavNav.Attributes.Type, NavNav.Attributes.TypeValues.Toc),
-                        new XElement(NavElements.Ol)));
+                        new XElement(Constants.XhtmlNamespace + NavElements.Ol)));
 
             resources = new EpubResources();
+
+            resources.Html.Add(new EpubTextFile
+            {
+                AbsolutePath = "nav.xhtml",
+                Href = "nav.xhtml",
+                ContentType = EpubContentType.Xhtml11,
+                MimeType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11],
+                TextContent = string.Empty
+            });
         }
 
         [Obsolete("Seems to be removed in Elib2Ebook")]
@@ -278,12 +295,22 @@ namespace EpubSharp
             if (string.IsNullOrWhiteSpace(xhtml)) return false;
 
             if (format.Ncx?.NavMap?.NavPoints == null) return false;
-            if (string.IsNullOrWhiteSpace(format.Opf?.Spine?.Toc)) return false;
 
             UpsertWarningXhtml(warningHref, xhtml);
             UpsertWarningManifestItem(manifestId, warningHref);
             UpsertWarningNcxNavPoints(title, warningHref, firstNavPointId, lastNavPointId);
 
+            return true;
+        }
+
+        public bool TrySetPackageVersion(string packageVersion)
+        {
+            if (!IsSingleDigitVersion(packageVersion))
+            {
+                return false;
+            }
+
+            format.Opf.PackageVersion = packageVersion;
             return true;
         }
 
@@ -464,8 +491,8 @@ namespace EpubSharp
             var spineItem = new OpfSpineItemRef { IdRef = manifestItem.Id, Linear = true };
             format.Opf.Spine.ItemRefs.Add(spineItem);
 
-            FindNavTocOl()?.Add(new XElement(NavElements.Li,
-                new XElement(NavElements.A, new XAttribute("href", file.Href), title)));
+            FindNavTocOl()?.Add(new XElement(Constants.XhtmlNamespace + NavElements.Li,
+                new XElement(Constants.XhtmlNamespace + NavElements.A, new XAttribute("href", file.Href), title)));
 
             format.Ncx?.NavMap.NavPoints.Add(new NcxNavPoint
             {
@@ -600,11 +627,6 @@ namespace EpubSharp
             };
             coverItem.Properties.Add(OpfManifest.ManifestItemCoverImageProperty);
             format.Opf.Manifest.Items.Add(coverItem);
-            format.Opf.Metadata.Metas.Add(new OpfMetadataMeta()
-            {
-                Name = "cover",
-                Content = "cover-image"
-            });
         }
 
         [Obsolete("Seems to be not used anymore", true)]
@@ -665,16 +687,15 @@ namespace EpubSharp
 
         public async Task Write(Stream stream, IEnumerable<FileMeta> files)
         {
-            using var archive = new ZipArchive(stream, ZipArchiveMode.Create, true, Encoding.UTF8);
+            EnsureDctermsModified();
+            EnsureNavXhtmlUpToDate();
 
-            // Создание директорий (EPUB/ и META-INF/)
-            archive.CreateEntry("EPUB/");
-            archive.CreateEntry("META-INF/");
+            using var archive = new ZipArchive(stream, ZipArchiveMode.Create, true, Encoding.UTF8);
 
             string relativePath = PathExt.GetDirectoryPath(this.opfPath);
 
-            // mimetype (без сжатия, по стандарту EPUB)
-            await archive.CreateEntry("mimetype", MimeTypeWriter.Format());
+            // mimetype (без сжатия, по стандарту EPUB) — должен быть первым entry
+            await CreateStoredEntry(archive, "mimetype", MimeTypeWriter.Format());
 
             // container.xml
             await archive.CreateEntry("META-INF/container.xml", OcfWriter.Format(this.opfPath));
@@ -686,6 +707,16 @@ namespace EpubSharp
             if (this.format.Ncx != null)
             {
                 await archive.CreateEntry(this.ncxPath, NcxWriter.Format(this.format.Ncx));
+            }
+
+            var fileMetaList = (files ?? Array.Empty<FileMeta>()).ToList();
+
+            // Дополнительные файлы (FileMeta) — используем как фильтр, чтобы не писать placeholder-ресурсы тем же путём
+            var fileMetaNames = new HashSet<string>(StringComparer.Ordinal);
+            foreach (var fileMeta in fileMetaList)
+            {
+                if (fileMeta?.Name == null) continue;
+                fileMetaNames.Add(fileMeta.Name);
             }
 
             // Внутренние ресурсы (HTML/CSS/etc)
@@ -700,14 +731,138 @@ namespace EpubSharp
 
             foreach (var file in allFiles)
             {
+                if (file == null) continue;
+                if (fileMetaNames.Contains(file.Href))
+                {
+                    continue;
+                }
+
                 await archive.CreateEntry(PathExt.Combine(relativePath, file.Href), file.Content);
             }
 
             // Дополнительные файлы (FileMeta)
-            foreach (var fileMeta in files)
+            foreach (var fileMeta in fileMetaList)
             {
                 await archive.CreateEntryByPath(PathExt.Combine(relativePath, fileMeta.Name), fileMeta.Path);
             }
+        }
+
+        private static async Task CreateStoredEntry(ZipArchive archive, string file, string content)
+        {
+            var data = Constants.DefaultEncoding.GetBytes(content);
+            var entry = archive.CreateEntry(file, CompressionLevel.NoCompression);
+            await using var stream = entry.Open();
+            await stream.WriteAsync(data, 0, data.Length);
+        }
+
+        private void EnsureNavXhtmlUpToDate()
+        {
+            if (format.Nav?.Head?.Dom == null || format.Nav?.Body?.Dom == null) return;
+
+            EnsureNavHeadUpToDate();
+
+            var navXhtml = NavWriter.Format(format.Nav);
+            var existing = resources.Html.FirstOrDefault(h => h.Href == "nav.xhtml");
+            if (existing == null)
+            {
+                resources.Html.Insert(0, new EpubTextFile
+                {
+                    AbsolutePath = "nav.xhtml",
+                    Href = "nav.xhtml",
+                    ContentType = EpubContentType.Xhtml11,
+                    MimeType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11],
+                    TextContent = navXhtml
+                });
+                return;
+            }
+
+            existing.ContentType = EpubContentType.Xhtml11;
+            existing.MimeType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11];
+            existing.TextContent = navXhtml;
+        }
+
+        private void EnsureNavHeadUpToDate()
+        {
+            var head = format.Nav?.Head?.Dom;
+            if (head == null) return;
+
+            var ns = Constants.XhtmlNamespace;
+            if (head.Name != ns + NavElements.Head)
+            {
+                head.Name = ns + NavElements.Head;
+            }
+
+            var titleValue = format.Opf?.Metadata?.Titles?.FirstOrDefault();
+            if (string.IsNullOrWhiteSpace(titleValue))
+            {
+                titleValue = "Table of Contents";
+            }
+
+            // XHTML5-compatible shorthand for declaring UTF-8.
+            var hasCharset = head.Elements(ns + NavElements.Meta)
+                .Any(m => m.Attribute(NavMeta.Attributes.Charset) != null);
+            if (!hasCharset)
+            {
+                head.AddFirst(new XElement(ns + NavElements.Meta, new XAttribute(NavMeta.Attributes.Charset, "utf-8")));
+            }
+
+            var title = head.Elements(ns + NavElements.Title).FirstOrDefault();
+            if (title == null)
+            {
+                var charsetMeta = head.Elements(ns + NavElements.Meta)
+                    .FirstOrDefault(m => m.Attribute(NavMeta.Attributes.Charset) != null);
+                if (charsetMeta != null)
+                {
+                    charsetMeta.AddAfterSelf(new XElement(ns + NavElements.Title, titleValue));
+                }
+                else
+                {
+                    head.AddFirst(new XElement(ns + NavElements.Title, titleValue));
+                }
+            }
+            else
+            {
+                title.Value = titleValue;
+            }
+        }
+
+        private void EnsureDctermsModified()
+        {
+            const string property = "dcterms:modified";
+
+            format.Opf.Metadata.Metas ??= new List<OpfMetadataMeta>();
+            var metas = format.Opf.Metadata.Metas;
+
+            var primary = metas
+                .Where(m => m.Property == property && string.IsNullOrWhiteSpace(m.Refines))
+                .ToList();
+
+            var now = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ");
+
+            if (primary.Count == 0)
+            {
+                metas.Add(new OpfMetadataMeta
+                {
+                    Property = property,
+                    Text = now
+                });
+                return;
+            }
+
+            primary[0].Text = now;
+            foreach (var extra in primary.Skip(1))
+            {
+                metas.Remove(extra);
+            }
+        }
+
+        private static bool IsSingleDigitVersion(string value)
+        {
+            return value != null &&
+                   value.Length == 3 &&
+                   char.IsDigit(value[0]) &&
+                   value[1] == '.' &&
+                   char.IsDigit(value[2]);
         }
 
         private XElement FindNavTocOl()

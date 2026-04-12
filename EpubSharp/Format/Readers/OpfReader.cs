@@ -21,7 +21,8 @@ namespace EpubSharp.Format.Readers
                 Text = elem.Value
             };
 
-            var epubVersion = GetAndValidateVersion((string)xml.Root.Attribute(OpfDocument.Attributes.Version));
+            var versionAttribute = (string)xml.Root.Attribute(OpfDocument.Attributes.Version);
+            var epubVersion = GetAndValidateVersion(versionAttribute);
             var metadata = xml.Root.Element(OpfElements.Metadata);
             var guide = xml.Root.Element(OpfElements.Guide);
             var spine = xml.Root.Element(OpfElements.Spine);
@@ -31,6 +32,7 @@ namespace EpubSharp.Format.Readers
                 Prefixes = ParsePrefixes((string)xml.Root.Attribute(OpfDocument.Attributes.Prefix)),
                 UniqueIdentifier = (string)xml.Root.Attribute(OpfDocument.Attributes.UniqueIdentifier),
                 EpubVersion = epubVersion,
+                PackageVersion = versionAttribute,
                 Metadata = new OpfMetadata
                 {
                     Creators = metadata?.Elements(OpfElements.Creator).AsObjectList(readCreator),

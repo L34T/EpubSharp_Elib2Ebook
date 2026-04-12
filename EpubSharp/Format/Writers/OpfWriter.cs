@@ -30,7 +30,7 @@ namespace EpubSharp.Format.Writers
                     versionString = "2.0";
                     break;
                 case EpubVersion.Epub3:
-                    versionString = "3.0";
+                    versionString = IsSingleDigitVersion(opf.PackageVersion) ? opf.PackageVersion : "3.2";
                     break;
                 default:
                     throw new EpubWriteException($"Unknown version: {opf.EpubVersion}");
@@ -57,6 +57,15 @@ namespace EpubSharp.Format.Writers
                 .Where(kvp => !string.IsNullOrWhiteSpace(kvp.Key) && !string.IsNullOrWhiteSpace(kvp.Value))
                 .OrderBy(kvp => kvp.Key, StringComparer.Ordinal)
                 .Select(kvp => $"{kvp.Key.Trim()}: {kvp.Value.Trim()}"));
+        }
+
+        private static bool IsSingleDigitVersion(string value)
+        {
+            return value != null &&
+                   value.Length == 3 &&
+                   char.IsDigit(value[0]) &&
+                   value[1] == '.' &&
+                   char.IsDigit(value[2]);
         }
 
         private static XElement WriteMetadata(OpfMetadata metadata, EpubVersion version)
@@ -247,7 +256,8 @@ namespace EpubSharp.Format.Writers
                     element.Add(new XAttribute(OpfMetadataIdentifier.Attributes.Id, identifier.Id));
                 }
 
-                if (!string.IsNullOrWhiteSpace(identifier.Scheme))
+                // EPUB 3.x: dc:identifier has no 'scheme' attribute (use meta property="identifier-type" if needed).
+                if (version == EpubVersion.Epub2 && !string.IsNullOrWhiteSpace(identifier.Scheme))
                 {
                     element.Add(new XAttribute(OpfMetadataIdentifier.Attributes.Scheme, identifier.Scheme));
                 }
