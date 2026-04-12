@@ -267,6 +267,117 @@ namespace EpubSharp
             return true;
         }
 
+        public bool TryAddNcxWarningPage(string title, string xhtml)
+        {
+            const string warningHref = "warning-ncx.xhtml";
+            const string manifestId = "warning-ncx";
+            const string firstNavPointId = "ncx-warning-first";
+            const string lastNavPointId = "ncx-warning-last";
+
+            if (string.IsNullOrWhiteSpace(title)) return false;
+            if (string.IsNullOrWhiteSpace(xhtml)) return false;
+
+            if (format.Ncx?.NavMap?.NavPoints == null) return false;
+            if (string.IsNullOrWhiteSpace(format.Opf?.Spine?.Toc)) return false;
+
+            UpsertWarningXhtml(warningHref, xhtml);
+            UpsertWarningManifestItem(manifestId, warningHref);
+            UpsertWarningNcxNavPoints(title, warningHref, firstNavPointId, lastNavPointId);
+
+            return true;
+        }
+
+        private void UpsertWarningXhtml(string warningHref, string xhtml)
+        {
+            var matching = resources.Html.Where(h => h.Href == warningHref).ToList();
+            var existing = matching.FirstOrDefault();
+            if (existing != null)
+            {
+                existing.ContentType = EpubContentType.Xhtml11;
+                existing.MimeType = ContentType.ContentTypeToMimeType[existing.ContentType];
+                existing.TextContent = xhtml;
+
+                foreach (var extra in matching.Skip(1))
+                {
+                    resources.Html.Remove(extra);
+                }
+
+                return;
+            }
+
+            var file = new EpubTextFile
+            {
+                AbsolutePath = warningHref,
+                Href = warningHref,
+                ContentType = EpubContentType.Xhtml11,
+                TextContent = xhtml
+            };
+            file.MimeType = ContentType.ContentTypeToMimeType[file.ContentType];
+            resources.Html.Add(file);
+        }
+
+        private void UpsertWarningManifestItem(string manifestId, string warningHref)
+        {
+            var matching = format.Opf.Manifest.Items.Where(i => i.Href == warningHref).ToList();
+            var existing = matching.FirstOrDefault();
+            if (existing != null)
+            {
+                existing.MediaType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11];
+                if (string.IsNullOrWhiteSpace(existing.Id))
+                {
+                    existing.Id = manifestId;
+                }
+
+                foreach (var extra in matching.Skip(1))
+                {
+                    format.Opf.Manifest.Items.Remove(extra);
+                }
+
+                return;
+            }
+
+            format.Opf.Manifest.Items.Add(new OpfManifestItem
+            {
+                Id = manifestId,
+                Href = warningHref,
+                MediaType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11]
+            });
+        }
+
+        private void UpsertWarningNcxNavPoints(string title, string warningHref, string firstNavPointId,
+            string lastNavPointId)
+        {
+            var navPoints = format.Ncx.NavMap.NavPoints;
+
+            for (var i = navPoints.Count - 1; i >= 0; i--)
+            {
+                var np = navPoints[i];
+                if (np == null) continue;
+
+                if (string.Equals(np.Id, firstNavPointId, StringComparison.Ordinal) ||
+                    string.Equals(np.Id, lastNavPointId, StringComparison.Ordinal) ||
+                    (string.Equals(np.ContentSrc, warningHref, StringComparison.Ordinal) &&
+                     np.Id != null && np.Id.StartsWith("ncx-warning", StringComparison.Ordinal)))
+                {
+                    navPoints.RemoveAt(i);
+                }
+            }
+
+            navPoints.Insert(0, new NcxNavPoint
+            {
+                Id = firstNavPointId,
+                NavLabelText = title,
+                ContentSrc = warningHref
+            });
+
+            navPoints.Add(new NcxNavPoint
+            {
+                Id = lastNavPointId,
+                NavLabelText = title,
+                ContentSrc = warningHref
+            });
+        }
+
         private void UpsertSeriesUrlLink(string seriesUrl, string rel)
         {
             format.Opf.Metadata.Links ??= new List<OpfMetadataLink>();
