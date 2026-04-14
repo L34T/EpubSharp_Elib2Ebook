@@ -337,10 +337,31 @@ namespace EpubSharp
                 HtmlInReadingOrder = new List<EpubTextFile>()
             };
 
+            var htmlByHref = book.Resources.Html
+                .Where(h => h?.Href != null)
+                .ToList();
+
+            var htmlIndex = new Dictionary<string, EpubTextFile>(StringComparer.Ordinal);
+            foreach (var html in htmlByHref)
+            {
+                if (htmlIndex.TryGetValue(html.Href, out var existing))
+                {
+                    if (!ReferenceEquals(existing, html))
+                    {
+                        throw new EpubParseException($"Duplicate HTML manifest href '{html.Href}'.");
+                    }
+
+                    continue;
+                }
+
+                htmlIndex[html.Href] = html;
+            }
+
             var htmlFiles = book.Format.Opf.Manifest.Items
                 .Where(item =>
-                    ContentType.MimeTypeToContentType.ContainsKey(item.MediaType) &&
-                    ContentType.MimeTypeToContentType[item.MediaType] == EpubContentType.Xhtml11)
+                    item.MediaType != null &&
+                    ContentType.MimeTypeToContentType.TryGetValue(item.MediaType, out var ct) &&
+                    ct == EpubContentType.Xhtml11)
                 .ToDictionary(item => item.Id, item => item.Href);
 
             foreach (var item in book.Format.Opf.Spine.ItemRefs)
@@ -350,8 +371,7 @@ namespace EpubSharp
                     continue;
                 }
 
-                var html = book.Resources.Html.SingleOrDefault(e => e.Href == href);
-                if (html != null)
+                if (href != null && htmlIndex.TryGetValue(href, out var html) && html != null)
                 {
                     result.HtmlInReadingOrder.Add(html);
                 }
