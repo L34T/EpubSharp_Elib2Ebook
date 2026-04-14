@@ -673,8 +673,8 @@ namespace EpubSharp
                 var relativePath = PathExt.GetDirectoryPath(opfPath);
                 foreach (var file in allFiles)
                 {
-                    var absolutePath = PathExt.Combine(relativePath, file.Href);
-                    archive.CreateEntry(absolutePath, file.Content);
+                    var entryName = PathExt.Combine(relativePath, file.Href).TrimStart('/');
+                    archive.CreateEntry(entryName, file.Content);
                 }
             }
         }
@@ -687,6 +687,7 @@ namespace EpubSharp
 
         public async Task Write(Stream stream, IEnumerable<FileMeta> files)
         {
+            EnsureDefaultLanguage();
             EnsureDctermsModified();
             EnsureNavXhtmlUpToDate();
 
@@ -737,13 +738,15 @@ namespace EpubSharp
                     continue;
                 }
 
-                await archive.CreateEntry(PathExt.Combine(relativePath, file.Href), file.Content);
+                var entryName = PathExt.Combine(relativePath, file.Href).TrimStart('/');
+                await archive.CreateEntry(entryName, file.Content);
             }
 
             // Дополнительные файлы (FileMeta)
             foreach (var fileMeta in fileMetaList)
             {
-                await archive.CreateEntryByPath(PathExt.Combine(relativePath, fileMeta.Name), fileMeta.Path);
+                var entryName = PathExt.Combine(relativePath, fileMeta.Name).TrimStart('/');
+                await archive.CreateEntryByPath(entryName, fileMeta.Path);
             }
         }
 
@@ -854,6 +857,14 @@ namespace EpubSharp
             {
                 metas.Remove(extra);
             }
+        }
+
+        private void EnsureDefaultLanguage()
+        {
+            // EPUB 3.x baseline requires at least one dc:language. Keep writer permissive by applying a default.
+            format.Opf.Metadata.Languages ??= new List<string>();
+            if (format.Opf.Metadata.Languages.Count > 0) return;
+            format.Opf.Metadata.Languages.Add("en");
         }
 
         private static bool IsSingleDigitVersion(string value)

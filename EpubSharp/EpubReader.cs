@@ -337,6 +337,7 @@ namespace EpubSharp
                 HtmlInReadingOrder = new List<EpubTextFile>()
             };
 
+            // Build an index for fast spine -> html lookup. Without this, reading order construction becomes O(n^2).
             var htmlByHref = book.Resources.Html
                 .Where(h => h?.Href != null)
                 .ToList();

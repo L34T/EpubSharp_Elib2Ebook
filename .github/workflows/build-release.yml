@@ -12,31 +12,39 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      
+        with:
+          fetch-depth: 1
+
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '9.0.x'
-      
-      - name: Restore dependencies
-        run: dotnet restore EpubSharp.sln
-      
-      - name: Build solution
-        run: dotnet build EpubSharp.sln --configuration Release --no-restore
-      
+
+      - name: Restore (library)
+        run: dotnet restore EpubSharp/EpubSharp.csproj
+
+      - name: Restore (tests)
+        run: dotnet restore EpubSharp.Tests/EpubSharp.Tests.csproj
+
+      - name: Build (net9.0)
+        run: dotnet build EpubSharp/EpubSharp.csproj --configuration Release --no-restore -f net9.0
+
+      - name: Test
+        run: dotnet test EpubSharp.Tests/EpubSharp.Tests.csproj --configuration Release --no-build --no-restore
+
       - name: Collect artifacts
         run: |
           mkdir -p ./release-artifacts
           cp ./EpubSharp/bin/Release/net9.0/EpubSharp.dll ./release-artifacts/
           cp ./EpubSharp/bin/Release/net9.0/EpubSharp.pdb ./release-artifacts/
           cp ./EpubSharp/bin/Release/net9.0/EpubSharp.deps.json ./release-artifacts/
-      
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: release-artifacts
           path: ./release-artifacts
-      
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:

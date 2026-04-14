@@ -16,8 +16,12 @@
         <Copyright>Copyright 2024</Copyright>
         <AssemblyVersion>1.1.6.0</AssemblyVersion>
         <FileVersion>1.1.6.0</FileVersion>
-        <InformationalVersion>1.1.6.0-alpha.4</InformationalVersion>
+        <InformationalVersion>1.1.6-alpha.4</InformationalVersion>
         <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(EpubSharpEnableNet10)' == 'true'">
+        <TargetFrameworks>net9.0;net10.0</TargetFrameworks>
     </PropertyGroup>
 
     <ItemGroup>
