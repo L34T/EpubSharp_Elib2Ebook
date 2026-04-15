@@ -29,6 +29,9 @@ jobs:
       - name: Build (net9.0)
         run: dotnet build EpubSharp/EpubSharp.csproj --configuration Release --no-restore -f net9.0
 
+      - name: Build (tests)
+        run: dotnet build EpubSharp.Tests/EpubSharp.Tests.csproj --configuration Release --no-restore -f net9.0
+
       - name: Test
         run: dotnet test EpubSharp.Tests/EpubSharp.Tests.csproj --configuration Release --no-build --no-restore -f net9.0
 
