@@ -6,7 +6,7 @@
         <Authors>Arvydas Sidorenko</Authors>
         <PackageTags>epub epubs book books 9.0</PackageTags>
         <PackageId>EpubSharp.dll</PackageId>
-        <Version>1.1.6-alpha.6</Version>
+        <Version>1.1.6-alpha.7</Version>
         <Description>A library for reading and writing EPUB files.</Description>
         <!-- DEPRECATED-WARN-NU5048
         <PackageIconUrl>https://upload.wikimedia.org/wikipedia/commons/thumb/d/d5/EPUB_silk_icon.svg/2000px-EPUB_silk_icon.svg.png</DEPRECATED-WARNNU5048-PackageIconUrl>
@@ -16,7 +16,7 @@
         <Copyright>Copyright 2024</Copyright>
         <AssemblyVersion>1.1.6.0</AssemblyVersion>
         <FileVersion>1.1.6.0</FileVersion>
-        <InformationalVersion>1.1.6-alpha.6</InformationalVersion>
+        <InformationalVersion>1.1.6-alpha.7</InformationalVersion>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
