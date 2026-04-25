@@ -116,6 +116,12 @@ namespace EpubSharp.Format.Readers
             {
                 return EpubVersion.Epub3;
             }
+            // EPUB 3.2, 3.3, and 3.4 still use version="3.0" in the package element per spec,
+            // but some tools may write the actual release number.
+            if (version == "3.2" || version == "3.3" || version == "3.4")
+            {
+                return EpubVersion.Epub34;
+            }
 
             throw new Exception($"Unsupported EPUB version: {version}.");
         }

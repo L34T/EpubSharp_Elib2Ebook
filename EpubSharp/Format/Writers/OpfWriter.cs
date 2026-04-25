@@ -25,6 +25,8 @@ namespace EpubSharp.Format.Writers
                     versionString = "2.0";
                     break;
                 case EpubVersion.Epub3:
+                case EpubVersion.Epub34:
+                    // EPUB 3.x always declares version="3.0" in the package element.
                     versionString = "3.0";
                     break;
                 default:
@@ -110,13 +112,31 @@ namespace EpubSharp.Format.Writers
                 switch (version)
                 {
                     case EpubVersion.Epub2:
-                        element.Add(new XAttribute(OpfMetadataMeta.Attributes.Content, meta.Text));
+                        // EPUB 2: meta values are stored as the "content" attribute.
+                        // The reader maps the "content" attribute to meta.Text, so write it back.
+                        if (meta.Text != null)
+                        {
+                            element.Add(new XAttribute(OpfMetadataMeta.Attributes.Content, meta.Text));
+                        }
                         break;
                     case EpubVersion.Epub3:
-                        element.Add(meta.Text);
+                    case EpubVersion.Epub34:
+                        // EPUB 3 native style: property-based metas carry their value as text content.
+                        // EPUB 2-compatible metas (name + content) are handled via the Content property below.
+                        if (meta.Property != null)
+                        {
+                            element.Add(meta.Text);
+                        }
                         break;
                     default:
-                        throw new NotImplementedException($"Epub version not support: {version} ({nameof(OpfWriter)})");
+                        throw new NotImplementedException($"Epub version not supported: {version} ({nameof(OpfWriter)})");
+                }
+
+                // Write "content" attribute for EPUB 2-style metas inside EPUB 3 packages
+                // (e.g. <meta name="cover" content="cover-image"/>).
+                if (!string.IsNullOrWhiteSpace(meta.Content))
+                {
+                    element.Add(new XAttribute(OpfMetadataMeta.Attributes.Content, meta.Content));
                 }
 
                 if (!string.IsNullOrWhiteSpace(meta.Id))

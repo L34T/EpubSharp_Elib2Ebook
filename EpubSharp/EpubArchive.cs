@@ -18,7 +18,7 @@ namespace EpubSharp
                 throw new FileNotFoundException("Specified epub file not found.", filePath);
             }
 
-            archive = Open(File.Open(filePath, FileMode.Open, FileAccess.Read), false);
+            archive = Open(File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read), false);
         }
 
         public  EpubArchive(byte[] epubData)

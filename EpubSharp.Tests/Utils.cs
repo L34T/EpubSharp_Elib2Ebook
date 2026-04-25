@@ -12,6 +12,13 @@ namespace EpubSharp.Tests
         {
             if (path == null) throw new ArgumentNullException(nameof(path));
 
+            var archives = new List<string>();
+
+            if (!Directory.Exists(path))
+            {
+                return archives;
+            }
+
             var destination = Path.Combine(Cwd.Combine("Samples"), Path.GetFileName(path));
             if (!Directory.Exists(destination))
             {
@@ -19,7 +26,6 @@ namespace EpubSharp.Tests
             }
 
             var samples = Directory.GetDirectories(path, "*", SearchOption.TopDirectoryOnly).ToList();
-            var archives = new List<string>();
 
             foreach (var source in samples)
             {

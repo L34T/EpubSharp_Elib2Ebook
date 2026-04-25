@@ -37,12 +37,33 @@ namespace EpubSharp.Format
         public static readonly XName ItemRef = Constants.OpfNamespace + "itemref";
     }
 
+    /// <summary>
+    /// Identifies the EPUB specification version used by the package document.
+    /// </summary>
     public enum EpubVersion
     {
+        /// <summary>EPUB 2.0 / 2.0.1 – uses NCX for navigation and the OPF 2.0 package format.</summary>
         Epub2 = 2,
-        Epub3 = 3
+
+        /// <summary>
+        /// EPUB 3.0 / 3.0.1 / 3.1 – uses an XHTML5 Navigation Document (<c>nav.xhtml</c>) and
+        /// the OPF 3.0 package format.  The <c>version</c> attribute in the OPF file is <c>"3.0"</c>.
+        /// </summary>
+        Epub3 = 3,
+
+        /// <summary>
+        /// EPUB 3.2 / 3.3 / 3.4 – functionally identical to <see cref="Epub3"/> at the package level
+        /// (the <c>version</c> attribute is still <c>"3.0"</c>), but signals support for the latest
+        /// EPUB 3 features such as ARIA attributes and <c>rendition:*</c> metadata.
+        /// </summary>
+        Epub34 = 34
     }
     
+    /// <summary>
+    /// Represents the OPF Package Document of an EPUB file.
+    /// The OPF document describes the publication: its metadata, list of resources (manifest),
+    /// reading order (spine), and optional navigation guide.
+    /// </summary>
     public class OpfDocument
     {
         internal static class Attributes
@@ -51,13 +72,33 @@ namespace EpubSharp.Format
             public static readonly XName Version = "version";
         }
 
+        /// <summary>Gets the value of the <c>unique-identifier</c> attribute, which references the
+        /// <c>dc:identifier</c> element that uniquely identifies this publication.</summary>
         public string UniqueIdentifier { get; internal set; }
+
+        /// <summary>Gets the EPUB specification version declared in the package document.</summary>
         public EpubVersion EpubVersion { get; internal set; }
+
+        /// <summary>Gets the publication metadata (title, author, language, etc.).</summary>
         public OpfMetadata Metadata { get; internal set; } = new OpfMetadata();
+
+        /// <summary>Gets the manifest, which lists every resource (HTML, CSS, images, fonts, …) in the publication.</summary>
         public OpfManifest Manifest { get; internal set; } = new OpfManifest();
+
+        /// <summary>Gets the spine, which defines the default reading order of the publication.</summary>
         public OpfSpine Spine { get; internal set; } = new OpfSpine();
+
+        /// <summary>Gets the optional EPUB 2 guide that hints reading-system navigation targets (cover, TOC, …).
+        /// May be <c>null</c> for EPUB 3 publications that omit the guide element.</summary>
         public OpfGuide Guide { get; internal set; } = new OpfGuide();
 
+        /// <summary>
+        /// Searches the manifest for the cover image path.
+        /// First checks for an EPUB 2-style <c>&lt;meta name="cover"/&gt;</c> element that
+        /// references a manifest item by ID, then falls back to an EPUB 3-style manifest item
+        /// with <c>properties="cover-image"</c>.
+        /// </summary>
+        /// <returns>The <c>href</c> of the cover image manifest item, or <c>null</c> if not found.</returns>
         internal string FindCoverPath()
         {
             var coverMetaItem = Metadata.FindCoverMeta();
@@ -78,10 +119,20 @@ namespace EpubSharp.Format
         {
             var path = FindCoverPath();
             var meta = Metadata.FindAndDeleteCoverMeta();
-            Manifest.DeleteCoverItem(meta?.Text);
+            // For EPUB2: meta.Text holds the cover manifest item ID (read from content="" attribute)
+            // For EPUB3 with EPUB2-style meta: meta.Text is empty → fall back to FindCoverItem() via null
+            var coverId = string.IsNullOrEmpty(meta?.Text) ? null : meta.Text;
+            Manifest.DeleteCoverItem(coverId);
             return path;
         }
         
+        /// <summary>
+        /// Locates the NCX navigation document path declared in the manifest (EPUB 2 and
+        /// some hybrid EPUB 3 publications).  Looks first for a manifest item with
+        /// <c>media-type="application/x-dtbncx+xml"</c>, then falls back to the <c>toc</c>
+        /// attribute of the <c>&lt;spine&gt;</c> element.
+        /// </summary>
+        /// <returns>The relative NCX href, or <c>null</c> if no NCX is declared.</returns>
         internal string FindNcxPath()
         {
             string path = null;
@@ -110,6 +161,11 @@ namespace EpubSharp.Format
             return path;
         }
 
+        /// <summary>
+        /// Locates the EPUB 3 Navigation Document path declared in the manifest.
+        /// Looks for the manifest item that carries <c>properties="nav"</c>.
+        /// </summary>
+        /// <returns>The relative nav href, or <c>null</c> if no nav item is declared.</returns>
         internal string FindNavPath()
         {
             var navItem = Manifest.Items.FirstOrDefault(e => e.Properties.Contains("nav"));
@@ -117,8 +173,13 @@ namespace EpubSharp.Format
         }
     }
 
+    /// <summary>
+    /// Holds all Dublin-Core and OPF-specific metadata elements found in the
+    /// <c>&lt;metadata&gt;</c> section of the OPF package document.
+    /// </summary>
     public class OpfMetadata
     {
+        /// <summary>Gets the publication titles (<c>dc:title</c> elements).</summary>
         public IList<string> Titles { get; internal set; } = new List<string>();
         public IList<string> Subjects { get; internal set; } = new List<string>();
         public IList<string> Descriptions { get; internal set; } = new List<string>();

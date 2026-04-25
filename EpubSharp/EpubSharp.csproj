@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
     <Authors>Arvydas Sidorenko</Authors>
-    <PackageTags>epub epubs book books 8.0</PackageTags>
+    <PackageTags>epub epubs book books 10.0</PackageTags>
     <PackageId>EpubSharp.dll</PackageId>
     <Version>1.1.6</Version>
     <Description>A library for reading and writing EPUB files.</Description>

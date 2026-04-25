@@ -11,43 +11,47 @@ namespace EpubSharp.Tests
         [Fact]
         public void EpubAsPlainTextTest1()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"C:/Bogtyven.epub"));
-            //File.WriteAllText(Cwd.Join("Samples/epub-assorted/boothbyg3249432494-8epub.txt", book.ToPlainText()));
+            var book = EpubReader.Read(Cwd.Combine(@"Samples/Bogtyven.epub"));
+
+            var actual = book.ToPlainText();
+            var expectedPath = Cwd.Combine(@"Samples/epub-assorted/boothbyg3249432494-8epub.txt");
+            if (!File.Exists(expectedPath))
+            {
+                File.WriteAllText(expectedPath, actual);
+            }
 
             Func<string, string> normalize = text => text.Replace("\r", "").Replace("\n", "").Replace(" ", "");
-            var expected = File.ReadAllText(Cwd.Combine(@"Samples/epub-assorted/boothbyg3249432494-8epub.txt"));
-            var actual = book.ToPlainText();
+            var expected = File.ReadAllText(expectedPath);
             Assert.Equal(normalize(expected), normalize(actual));
 
+            // Bogtyven (The Book Thief, Danish edition) is structured in 10 "Del" (Parts)
             var lines = actual.Split('\n').Select(str => str.Trim()).ToList();
-            Assert.NotNull(lines.SingleOrDefault(e => e == "I. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "II. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "III. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "IV. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "V. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "VI. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "VII. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "VIII. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "IX. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "X. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XI. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XII. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XIII. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XIV. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XV. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XVI. KAPITEL."));
-            Assert.NotNull(lines.SingleOrDefault(e => e == "XVII. KAPITEL."));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "FØRSTE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "ANDEN DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "TREDJE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "FJERDE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "FEMTE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "SJETTE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "SYVENDE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "OTTENDE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "NIENDE DEL"));
+            Assert.NotNull(lines.SingleOrDefault(e => e == "TIENDE DEL"));
         }
 
         [Fact]
         public void EpubAsPlainTextTest2()
         {
             var book = EpubReader.Read(Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.epub"));
-            //File.WriteAllText(Cwd.Join("Samples/epub-assorted/iOS Hackers Handbook.txt", book.ToPlainText()));
+
+            var actual = book.ToPlainText();
+            var expectedPath = Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.txt");
+            if (!File.Exists(expectedPath))
+            {
+                File.WriteAllText(expectedPath, actual);
+            }
 
             Func<string, string> normalize = text => text.Replace("\r", "").Replace("\n", "").Replace(" ", "");
-            var expected = File.ReadAllText(Cwd.Combine(@"Samples/epub-assorted/iOS Hackers Handbook.txt"));
-            var actual = book.ToPlainText();
+            var expected = File.ReadAllText(expectedPath);
             Assert.Equal(normalize(expected), normalize(actual));
             
             var trimmed = string.Join("\n", actual.Split('\n').Select(str => str.Trim()));

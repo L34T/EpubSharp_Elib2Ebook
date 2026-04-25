@@ -1,14 +1,16 @@
 ﻿using System.IO;
+using System.Reflection;
 
 namespace EpubSharp.Tests
 {
     public static class Cwd
     {
+        private static readonly string ProjectDir = Path.GetFullPath(
+            Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!, "..", "..", ".."));
+
         public static string Combine(string relativePath)
         {
-            // VS2017 test platform has a bug, that is fixed in VS 2017 Update 1.
-            // Remove this nonsense when that is released.
-            return Path.Combine(@"D:\Code\EpubSharp\EpubSharp.Tests", relativePath);
+            return Path.Combine(ProjectDir, relativePath);
         }
     }
 }

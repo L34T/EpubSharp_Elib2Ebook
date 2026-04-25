@@ -10,7 +10,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void CanWriteTest()
         {
-            var book = EpubReader.Read(Cwd.Combine(@"c://Bogtyven.epub"));
+            var book = EpubReader.Read(Cwd.Combine(@"Samples/Bogtyven.epub"));
             var writer = new EpubWriter(book);
             writer.Write(new MemoryStream());
         }
@@ -18,18 +18,20 @@ namespace EpubSharp.Tests
         [Fact]
         public void CanCreateEmptyEpubTest()
         {
+            // A new EpubWriter() produces a pure EPUB 3 package with a nav.xhtml and no NCX.
             var epub = WriteAndRead(new EpubWriter());
 
             Assert.Null(epub.Title);
             Assert.Equal(0, epub.Authors.Count());
             Assert.Null(epub.CoverImage);
 
-            Assert.Equal(0, epub.Resources.Html.Count);
+            // nav.xhtml is the only file in the manifest (goes to Html bucket as application/xhtml+xml).
+            Assert.Equal(1, epub.Resources.Html.Count);
             Assert.Equal(0, epub.Resources.Css.Count);
             Assert.Equal(0, epub.Resources.Images.Count);
             Assert.Equal(0, epub.Resources.Fonts.Count);
-            Assert.Equal(1, epub.Resources.Other.Count); // ncx
-            
+            Assert.Equal(0, epub.Resources.Other.Count);
+
             Assert.Equal(0, epub.SpecialResources.HtmlInReadingOrder.Count);
             Assert.NotNull(epub.SpecialResources.Ocf);
             Assert.NotNull(epub.SpecialResources.Opf);
@@ -38,8 +40,44 @@ namespace EpubSharp.Tests
 
             Assert.NotNull(epub.Format.Ocf);
             Assert.NotNull(epub.Format.Opf);
-            Assert.NotNull(epub.Format.Ncx);
-            Assert.Null(epub.Format.Nav);
+            Assert.Null(epub.Format.Ncx);         // EPUB 3 — no NCX
+            Assert.NotNull(epub.Format.Nav);      // EPUB 3 — nav.xhtml is written
+            Assert.Equal(EpubVersion.Epub3, epub.Format.Opf.EpubVersion);
+        }
+
+        [Fact]
+        public void CanCreateEpub3WithNavTest()
+        {
+            // Verifies that the written nav.xhtml declares the OPS namespace and epub:type="toc".
+            var writer = new EpubWriter();
+            var epub = WriteAndRead(writer);
+
+            Assert.NotNull(epub.Format.Nav);
+            Assert.NotNull(epub.Format.Nav.Body);
+
+            var tocNav = epub.Format.Nav.Body.Navs.SingleOrDefault(n => n.Type == "toc");
+            Assert.NotNull(tocNav);
+        }
+
+        [Fact]
+        public void NavTocRoundtripTest()
+        {
+            // Adds two chapters, writes, reads back; verifies TOC is populated from nav.xhtml.
+            var writer = new EpubWriter();
+            writer.AddChapter("Chapter One", "<p>First</p>");
+            writer.AddChapter("Chapter Two", "<p>Second</p>");
+
+            var epub = WriteAndRead(writer);
+
+            // TableOfContents is loaded from the nav.xhtml (not NCX).
+            Assert.Null(epub.Format.Ncx);
+            Assert.NotNull(epub.Format.Nav);
+            Assert.Equal(2, epub.TableOfContents.Count);
+            Assert.Equal("Chapter One", epub.TableOfContents[0].Title);
+            Assert.Equal("Chapter Two", epub.TableOfContents[1].Title);
+
+            // Each chapter file must exist as a resource.
+            Assert.Equal(3, epub.Resources.Html.Count); // 2 chapters + nav.xhtml
         }
 
         [Fact]
@@ -107,7 +145,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void RemoveCoverTest()
         {
-            var epub1 = EpubReader.Read(Cwd.Combine(@"c://Bogtyven.epub"));
+            var epub1 = EpubReader.Read(Cwd.Combine(@"Samples/Bogtyven.epub"));
 
             var writer = new EpubWriter(EpubWriter.MakeCopy(epub1));
             writer.RemoveCover();
@@ -173,7 +211,7 @@ namespace EpubSharp.Tests
         [Fact]
         public void ClearBogtyvenChaptersTest()
         {
-            var writer = new EpubWriter(EpubReader.Read(Cwd.Combine("C:/Bogtyven.epub")));
+            var writer = new EpubWriter(EpubReader.Read(Cwd.Combine(@"Samples/Bogtyven.epub")));
             writer.ClearChapters();
 
             var epub = WriteAndRead(writer);
