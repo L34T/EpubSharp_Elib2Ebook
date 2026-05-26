@@ -1,0 +1,6 @@
+<Project>
+  <PropertyGroup Condition="!Exists('$(MSBuildSDKsPath)/Microsoft.NET.SDK.WorkloadAutoImportPropsLocator/Sdk') Or !Exists('$(MSBuildSDKsPath)/Microsoft.NET.SDK.WorkloadManifestTargetsLocator/Sdk')">
+    <MSBuildEnableWorkloadResolver>false</MSBuildEnableWorkloadResolver>
+  </PropertyGroup>
+</Project>
+

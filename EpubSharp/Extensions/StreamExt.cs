@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace EpubSharp
+namespace EpubSharp.Extensions
 {
     internal static class StreamExt
     {
@@ -46,6 +46,7 @@ namespace EpubSharp
                     buffer = new byte[totalBytesRead];
                     Buffer.BlockCopy(readBuffer, 0, buffer, 0, totalBytesRead);
                 }
+                
                 return buffer;
             }
             finally

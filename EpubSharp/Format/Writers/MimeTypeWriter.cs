@@ -2,9 +2,6 @@
 {
     internal class MimeTypeWriter
     {
-        public static string Format()
-        {
-            return "application/epub+zip";
-        }
+        public static string Format() => "application/epub+zip";
     }
 }

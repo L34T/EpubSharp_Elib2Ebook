@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.IO.Compression;
+using EpubSharp.Extensions;
 using EpubSharp.Format;
 
 namespace EpubSharp
@@ -11,7 +12,7 @@ namespace EpubSharp
 
         public EpubArchive(string filePath)
         {
-            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            ArgumentNullException.ThrowIfNull(filePath);
 
             if (!File.Exists(filePath))
             {
@@ -21,7 +22,7 @@ namespace EpubSharp
             archive = Open(File.Open(filePath, FileMode.Open, FileAccess.Read, FileShare.Read), false);
         }
 
-        public  EpubArchive(byte[] epubData)
+        public EpubArchive(byte[] epubData)
         {
             archive = Open(new MemoryStream(epubData), false);
         }

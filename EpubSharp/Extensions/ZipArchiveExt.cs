@@ -3,29 +3,32 @@ using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Threading.Tasks;
 using System.Xml;
 using System.Xml.Linq;
 using EpubSharp.Format;
 
-namespace EpubSharp
+namespace EpubSharp.Extensions
 {
     public static class ZipArchiveExt
     {
-        public static void CreateEntry(this ZipArchive archive, string file, string content)
+        public static async Task CreateEntry(this ZipArchive archive, string file, string content)
         {
             var data = Constants.DefaultEncoding.GetBytes(content);
-            archive.CreateEntry(file, data);
+            await archive.CreateEntry(file, data);
         }
 
-        public static void CreateEntry(this ZipArchive archive, string file, byte[] data)
+        public static async Task CreateEntry(this ZipArchive archive, string file, byte[] data)
         {
             var entry = archive.CreateEntry(file);
-            using (var stream = entry.Open())
-            {
-                stream.Write(data, 0, data.Length);
-            }
+            await using var stream = entry.Open();
+            await stream.WriteAsync(data, 0, data.Length);
+            // using (var stream = entry.Open())
+            // {
+            //     stream.Write(data, 0, data.Length);
+            // }
         }
-        
+
         /// <summary>
         /// ZIP's are slash-side sensitive and ZIP's created on Windows and Linux can contain their own variation.
         /// </summary>
@@ -36,7 +39,18 @@ namespace EpubSharp
             {
                 throw new EpubParseException($"{entryName} file not found in archive.");
             }
+
             return entry;
+        }
+        
+        
+        public static async Task CreateEntryByPath(this ZipArchive archive, string name, string path)
+        {
+            var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+            await using var fileStream = File.OpenRead(path);
+            await using var entryStream = entry.Open();
+
+            await fileStream.CopyToAsync(entryStream);
         }
 
         public static ZipArchiveEntry TryGetEntryImproved(this ZipArchive archive, string entryName)
@@ -45,7 +59,7 @@ namespace EpubSharp
             // That is, they should not include a leading '/' character.
             // Therefore for performance reasons to maximize a match on first attempt
             // exclude it initially and try with a leading slash in the later attempts.
-            if (entryName.StartsWith("/") || entryName.StartsWith("\\"))
+            if (entryName.StartsWith('/') || entryName.StartsWith('\\'))
             {
                 entryName = entryName.Substring(1);
             }
@@ -65,10 +79,10 @@ namespace EpubSharp
                 // Such epubs aren't common, but zip archives created on windows uses backslashes.
                 // That could happen if an epub is re-archived manually.
                 foreach (var newName in new[]
-                {
-                    entryName.Replace(@"\", "/"),
-                    entryName.Replace("/", @"\")
-                }.Where(newName => newName != entryName))
+                         {
+                             entryName.Replace(@"\", "/"),
+                             entryName.Replace("/", @"\")
+                         }.Where(newName => newName != entryName))
                 {
                     namesToTry.Add(newName);
                     namesToTry.Add(Uri.UnescapeDataString(newName));
@@ -120,7 +134,7 @@ namespace EpubSharp
             var html = archive.LoadText(entryName);
             return LoadXDocumentWithoutDtd(html);
         }
-        
+
         /// <summary>
         /// Loads the given xml into an XDocument without loading external DTD definitions (which seems to not work in some cases).
         /// </summary>
