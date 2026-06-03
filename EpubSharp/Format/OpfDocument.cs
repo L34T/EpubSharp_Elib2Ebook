@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -18,6 +17,7 @@ namespace EpubSharp.Format
         public static readonly XName Format = Constants.OpfMetadataNamespace + "format";
         public static readonly XName Identifier = Constants.OpfMetadataNamespace + "identifier";
         public static readonly XName Language = Constants.OpfMetadataNamespace + "language";
+        public static readonly XName Link = Constants.OpfNamespace + "link";
         public static readonly XName Meta = Constants.OpfNamespace + "meta";
         public static readonly XName Publisher = Constants.OpfMetadataNamespace + "publisher";
         public static readonly XName Relation = Constants.OpfMetadataNamespace + "relation";
@@ -58,7 +58,7 @@ namespace EpubSharp.Format
         /// </summary>
         Epub34 = 34
     }
-    
+
     /// <summary>
     /// Represents the OPF Package Document of an EPUB file.
     /// The OPF document describes the publication: its metadata, list of resources (manifest),
@@ -68,6 +68,7 @@ namespace EpubSharp.Format
     {
         internal static class Attributes
         {
+            public static readonly XName Prefix = "prefix";
             public static readonly XName UniqueIdentifier = "unique-identifier";
             public static readonly XName Version = "version";
         }
@@ -78,6 +79,12 @@ namespace EpubSharp.Format
 
         /// <summary>Gets the EPUB specification version declared in the package document.</summary>
         public EpubVersion EpubVersion { get; internal set; }
+
+        /// <summary>Gets or sets the full package version string (e.g., "3.2").</summary>
+        public string PackageVersion { get; internal set; }
+
+        /// <summary>Gets the namespace prefixes declared in the package element.</summary>
+        public IDictionary<string, string> Prefixes { get; internal set; } = new Dictionary<string, string>();
 
         /// <summary>Gets the publication metadata (title, author, language, etc.).</summary>
         public OpfMetadata Metadata { get; internal set; } = new OpfMetadata();
@@ -125,7 +132,7 @@ namespace EpubSharp.Format
             Manifest.DeleteCoverItem(coverId);
             return path;
         }
-        
+
         /// <summary>
         /// Locates the NCX navigation document path declared in the manifest (EPUB 2 and
         /// some hybrid EPUB 3 publications).  Looks first for a manifest item with
@@ -181,26 +188,40 @@ namespace EpubSharp.Format
     {
         /// <summary>Gets the publication titles (<c>dc:title</c> elements).</summary>
         public IList<string> Titles { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication subjects (<c>dc:subject</c> elements).</summary>
         public IList<string> Subjects { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication descriptions (<c>dc:description</c> elements).</summary>
         public IList<string> Descriptions { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication publishers (<c>dc:publisher</c> elements).</summary>
         public IList<string> Publishers { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication creators (authors, illustrators, etc.).</summary>
         public IList<OpfMetadataCreator> Creators { get; internal set; } = new List<OpfMetadataCreator>();
+        /// <summary>Gets the publication contributors.</summary>
         public IList<OpfMetadataCreator> Contributors { get; internal set; } = new List<OpfMetadataCreator>();
+        /// <summary>Gets the publication dates.</summary>
         public IList<OpfMetadataDate> Dates { get; internal set; } = new List<OpfMetadataDate>();
+        /// <summary>Gets the publication types.</summary>
         public IList<string> Types { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication formats.</summary>
         public IList<string> Formats { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication identifiers (<c>dc:identifier</c> elements).</summary>
         public IList<OpfMetadataIdentifier> Identifiers { get; internal set; } = new List<OpfMetadataIdentifier>();
+        /// <summary>Gets the publication sources.</summary>
         public IList<string> Sources { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication languages.</summary>
         public IList<string> Languages { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication relations.</summary>
         public IList<string> Relations { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication coverages.</summary>
         public IList<string> Coverages { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication rights.</summary>
         public IList<string> Rights { get; internal set; } = new List<string>();
+        /// <summary>Gets the publication meta elements.</summary>
         public IList<OpfMetadataMeta> Metas { get; internal set; } = new List<OpfMetadataMeta>();
+        /// <summary>Gets the publication link elements (EPUB 3).</summary>
+        public IList<OpfMetadataLink> Links { get; internal set; } = new List<OpfMetadataLink>();
 
-        internal OpfMetadataMeta FindCoverMeta()
-        {
-            return Metas.FirstOrDefault(metaItem => metaItem.Name == "cover");
-        }
+        internal OpfMetadataMeta FindCoverMeta() => Metas.FirstOrDefault(metaItem => metaItem.Name == "cover");
 
         internal OpfMetadataMeta FindAndDeleteCoverMeta()
         {
@@ -211,6 +232,7 @@ namespace EpubSharp.Format
         }
     }
 
+    /// <summary>Represents a <c>dc:date</c> element in the OPF metadata.</summary>
     public class OpfMetadataDate
     {
         internal static class Attributes
@@ -218,14 +240,16 @@ namespace EpubSharp.Format
             public static readonly XName Event = Constants.OpfNamespace + "event";
         }
 
+        /// <summary>The date value string.</summary>
         public string Text { get; internal set; }
 
         /// <summary>
-        /// i.e. "modification"
+        /// The event associated with the date (e.g. "modification", "publication").
         /// </summary>
         public string Event { get; internal set; }
     }
 
+    /// <summary>Represents a <c>dc:creator</c> or <c>dc:contributor</c> element in the OPF metadata.</summary>
     public class OpfMetadataCreator
     {
         internal static class Attributes
@@ -235,12 +259,17 @@ namespace EpubSharp.Format
             public static readonly XName AlternateScript = Constants.OpfNamespace + "alternate-script";
         }
 
+        /// <summary>The name of the creator.</summary>
         public string Text { get; internal set; }
+        /// <summary>The role of the creator (e.g. "aut", "ill").</summary>
         public string Role { get; internal set; }
+        /// <summary>The "file-as" version of the name for sorting.</summary>
         public string FileAs { get; internal set; }
+        /// <summary>An alternate script version of the name.</summary>
         public string AlternateScript { get; internal set; }
     }
 
+    /// <summary>Represents a <c>dc:identifier</c> element in the OPF metadata.</summary>
     public class OpfMetadataIdentifier
     {
         internal static class Attributes
@@ -249,11 +278,15 @@ namespace EpubSharp.Format
             public static readonly XName Scheme = "scheme";
         }
 
+        /// <summary>The XML ID of the identifier.</summary>
         public string Id { get; internal set; }
+        /// <summary>The scheme of the identifier (EPUB 2 legacy).</summary>
         public string Scheme { get; internal set; }
+        /// <summary>The identifier value string.</summary>
         public string Text { get; internal set; }
     }
 
+    /// <summary>Represents a <c>meta</c> element in the OPF metadata.</summary>
     public class OpfMetadataMeta
     {
         internal static class Attributes
@@ -266,19 +299,58 @@ namespace EpubSharp.Format
             public static readonly XName Content = "content";
         }
 
+        /// <summary>The name of the meta element (EPUB 2 style).</summary>
         public string Name { get; internal set; }
+        /// <summary>The XML ID of the meta element.</summary>
         public string Id { get; internal set; }
+        /// <summary>The ID of the element this meta refines (EPUB 3 style).</summary>
         public string Refines { get; internal set; }
+        /// <summary>The property being defined (EPUB 3 style).</summary>
         public string Property { get; internal set; }
+        /// <summary>The scheme used for the property value.</summary>
         public string Scheme { get; internal set; }
+        /// <summary>The text content of the meta element.</summary>
         public string Text { get; internal set; }
+        /// <summary>The content attribute value (EPUB 2 style).</summary>
         public string Content { get; internal set; }
     }
 
+    /// <summary>Represents a <c>link</c> element in the OPF metadata (EPUB 3).</summary>
+    public class OpfMetadataLink
+    {
+        internal static class Attributes
+        {
+            public static readonly XName Href = "href";
+            public static readonly XName HrefLang = "hreflang";
+            public static readonly XName Id = "id";
+            public static readonly XName MediaType = "media-type";
+            public static readonly XName Properties = "properties";
+            public static readonly XName Refines = "refines";
+            public static readonly XName Rel = "rel";
+        }
+
+        /// <summary>The link destination.</summary>
+        public string Href { get; internal set; }
+        /// <summary>The language of the linked resource.</summary>
+        public string HrefLang { get; internal set; }
+        /// <summary>The XML ID of the link element.</summary>
+        public string Id { get; internal set; }
+        /// <summary>The media-type of the linked resource.</summary>
+        public string MediaType { get; internal set; }
+        /// <summary>The properties associated with the link.</summary>
+        public IList<string> Properties { get; internal set; } = new List<string>();
+        /// <summary>The ID of the element this link refines.</summary>
+        public string Refines { get; internal set; }
+        /// <summary>The relationship of the linked resource.</summary>
+        public string Rel { get; internal set; }
+    }
+
+    /// <summary>Represents the <c>manifest</c> section of the OPF package document.</summary>
     public class OpfManifest
     {
         internal const string ManifestItemCoverImageProperty = "cover-image";
 
+        /// <summary>All manifest items (resources) in the publication.</summary>
         public IList<OpfManifestItem> Items { get; internal set; } = new List<OpfManifestItem>();
 
         internal OpfManifestItem FindCoverItem()
@@ -296,6 +368,7 @@ namespace EpubSharp.Format
         }
     }
 
+    /// <summary>Represents a single <c>item</c> in the OPF manifest.</summary>
     public class OpfManifestItem
     {
         internal static class Attributes
@@ -310,21 +383,28 @@ namespace EpubSharp.Format
             public static readonly XName RequiredNamespace = "required-namespace";
         }
 
+        /// <summary>The XML ID of the item.</summary>
         public string Id { get; internal set; }
+        /// <summary>The href of the resource relative to the OPF file.</summary>
         public string Href { get; internal set; }
+        /// <summary>Properties of the manifest item (e.g. "nav", "cover-image").</summary>
         public IList<string> Properties { get; internal set; } = new List<string>();
+        /// <summary>The media-type (MIME type) of the resource.</summary>
         public string MediaType { get; internal set; }
+        /// <summary>The required namespace for this item.</summary>
         public string RequiredNamespace { get; internal set; }
+        /// <summary>The required modules for this item.</summary>
         public string RequiredModules { get; internal set; }
+        /// <summary>The fallback item ID if this item is not supported.</summary>
         public string Fallback { get; internal set; }
+        /// <summary>The fallback style ID.</summary>
         public string FallbackStyle { get; internal set; }
 
-        public override string ToString()
-        {
-            return $"Id: {Id}, Href = {Href}, MediaType = {MediaType}";
-        }
+        /// <inheritdoc/>
+        public override string ToString() => $"Id: {Id}, Href = {Href}, MediaType = {MediaType}";
     }
 
+    /// <summary>Represents the <c>spine</c> section of the OPF package document.</summary>
     public class OpfSpine
     {
         internal static class Attributes
@@ -332,10 +412,13 @@ namespace EpubSharp.Format
             public static readonly XName Toc = "toc";
         }
 
+        /// <summary>The ID of the NCX manifest item used for navigation (EPUB 2).</summary>
         public string Toc { get; internal set; }
+        /// <summary>The ordered list of manifest items that define the reading order.</summary>
         public IList<OpfSpineItemRef> ItemRefs { get; internal set; } = new List<OpfSpineItemRef>();
     }
 
+    /// <summary>Represents a single <c>itemref</c> in the OPF spine.</summary>
     public class OpfSpineItemRef
     {
         internal static class Attributes
@@ -346,22 +429,27 @@ namespace EpubSharp.Format
             public static readonly XName Properties = "properties";
         }
 
+        /// <summary>The ID of the manifest item being referenced.</summary>
         public string IdRef { get; internal set; }
+        /// <summary>Whether the item is part of the linear reading order.</summary>
         public bool Linear { get; internal set; }
+        /// <summary>The XML ID of the spine reference.</summary>
         public string Id { get; internal set; }
+        /// <summary>Properties of the spine reference (e.g. "page-spread-left").</summary>
         public IList<string> Properties { get; internal set; } = new List<string>();
 
-        public override string ToString()
-        {
-            return "IdRef: " + IdRef;
-        }
+        /// <inheritdoc/>
+        public override string ToString() => "IdRef: " + IdRef;
     }
 
+    /// <summary>Represents the legacy EPUB 2 <c>guide</c> section.</summary>
     public class OpfGuide
     {
+        /// <summary>References to key publication components (cover, TOC, etc.).</summary>
         public IList<OpfGuideReference> References { get; internal set; } = new List<OpfGuideReference>();
     }
 
+    /// <summary>Represents a single <c>reference</c> in the OPF guide.</summary>
     public class OpfGuideReference
     {
         internal static class Attributes
@@ -371,13 +459,14 @@ namespace EpubSharp.Format
             public static readonly XName Href = "href";
         }
 
+        /// <summary>The type of the reference (e.g. "cover", "toc").</summary>
         public string Type { get; internal set; }
+        /// <summary>The title of the reference.</summary>
         public string Title { get; internal set; }
+        /// <summary>The href of the resource.</summary>
         public string Href { get; internal set; }
 
-        public override string ToString()
-        {
-            return $"Type: {Type}, Href: {Href}";
-        }
+        /// <inheritdoc/>
+        public override string ToString() => $"Type: {Type}, Href: {Href}";
     }
 }

@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text;
 using EpubSharp.Format;
+using EpubSharp.Misc;
 
 namespace EpubSharp
 {
@@ -117,10 +118,7 @@ namespace EpubSharp
         public IList<EpubChapter> SubChapters { get; set; } = new List<EpubChapter>();
 
         /// <inheritdoc/>
-        public override string ToString()
-        {
-            return $"Title: {Title}, Subchapter count: {SubChapters.Count}";
-        }
+        public override string ToString() => $"Title: {Title}, Subchapter count: {SubChapters.Count}";
     }
 
     /// <summary>

@@ -3,55 +3,76 @@ name: Build and Release
 on:
   push:
     tags:
-      - 'v*'
+      - "v*"
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - netVersion: "9"
+            sdk: "9.0.x"
+          - netVersion: "10"
+            sdk: "10.0.x"
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: ${{ matrix.sdk }}
 
-      - name: Restore (library)
-        run: dotnet restore EpubSharp/EpubSharp.csproj
+      - name: Restore
+        run: |
+          dotnet restore EpubSharp/EpubSharp.csproj -c Release -p:NetVersion=${{ matrix.netVersion }}
+          dotnet restore EpubSharp.Tests/EpubSharp.Tests.csproj -c Release -p:NetVersion=${{ matrix.netVersion }}
 
-      - name: Restore (tests)
-        run: dotnet restore EpubSharp.Tests/EpubSharp.Tests.csproj
-
-      - name: Build (net9.0)
-        run: dotnet build EpubSharp/EpubSharp.csproj --configuration Release --no-restore -f net9.0
-
-      - name: Build (tests)
-        run: dotnet build EpubSharp.Tests/EpubSharp.Tests.csproj --configuration Release --no-restore -f net9.0
+      - name: Build
+        run: |
+          dotnet build EpubSharp/EpubSharp.csproj -c Release --no-restore -p:NetVersion=${{ matrix.netVersion }}
+          dotnet build EpubSharp.Tests/EpubSharp.Tests.csproj -c Release --no-restore -p:NetVersion=${{ matrix.netVersion }}
 
       - name: Test
-        run: dotnet test EpubSharp.Tests/EpubSharp.Tests.csproj --configuration Release --no-build --no-restore -f net9.0
-
-      - name: Collect artifacts
         run: |
-          mkdir -p ./release-artifacts
-          cp ./EpubSharp/bin/Release/net9.0/EpubSharp.dll ./release-artifacts/
-          cp ./EpubSharp/bin/Release/net9.0/EpubSharp.pdb ./release-artifacts/
-          cp ./EpubSharp/bin/Release/net9.0/EpubSharp.deps.json ./release-artifacts/
+          dotnet test EpubSharp.Tests/EpubSharp.Tests.csproj -c Release --no-build --no-restore -p:NetVersion=${{ matrix.netVersion }}
+
+      - name: Collect release files
+        run: |
+          out="./release-artifacts/net${{ matrix.netVersion }}"
+          src="./EpubSharp/bin/Release/net${{ matrix.netVersion }}.0"
+          mkdir -p "$out"
+
+          cp "$src/EpubSharp.dll" "$out/EpubSharp-net${{ matrix.netVersion }}.dll"
+          cp "$src/EpubSharp.pdb" "$out/EpubSharp-net${{ matrix.netVersion }}.pdb"
+          cp "$src/EpubSharp.deps.json" "$out/EpubSharp-net${{ matrix.netVersion }}.deps.json"
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
-          path: ./release-artifacts
+          name: release-artifacts-net${{ matrix.netVersion }}
+          path: ./release-artifacts/net${{ matrix.netVersion }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-artifacts-*
+          merge-multiple: true
+          path: ./all-release-files
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          files: ./release-artifacts/*
+          files: ./all-release-files/*
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
