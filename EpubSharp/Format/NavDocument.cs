@@ -113,7 +113,7 @@ namespace EpubSharp.Format
         /// <summary>
         /// The raw <c>&lt;body&gt;</c> XElement from the parsed XHTML or created
         /// programmatically by <see cref="EpubWriter"/>.
-        /// Used by <see cref="NavWriter"/> to serialise the document and by
+        /// Used by <see cref="EpubSharp.Format.Writers.NavWriter"/> to serialise the document and by
         /// <see cref="EpubWriter"/> to manipulate the TOC structure.
         /// </summary>
         internal XElement Dom { get; set; }

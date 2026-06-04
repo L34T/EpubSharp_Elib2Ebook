@@ -928,7 +928,7 @@ namespace EpubSharp
             var data = Constants.DefaultEncoding.GetBytes(content);
             var entry = archive.CreateEntry(file, CompressionLevel.NoCompression);
             await using var stream = entry.Open();
-            await stream.WriteAsync(data, 0, data.Length);
+            await stream.WriteAsync(data);
         }
 
         private void EnsureNavXhtmlUpToDate()

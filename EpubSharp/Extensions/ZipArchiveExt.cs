@@ -22,7 +22,7 @@ namespace EpubSharp.Extensions
         {
             var entry = archive.CreateEntry(file);
             await using var stream = entry.Open();
-            await stream.WriteAsync(data, 0, data.Length);
+            await stream.WriteAsync(data);
             // using (var stream = entry.Open())
             // {
             //     stream.Write(data, 0, data.Length);
@@ -42,7 +42,6 @@ namespace EpubSharp.Extensions
 
             return entry;
         }
-        
         
         public static async Task CreateEntryByPath(this ZipArchive archive, string name, string path)
         {

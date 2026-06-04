@@ -3,7 +3,7 @@
     /// <summary>
     /// Holds the absolute archive paths of the key EPUB structural files resolved during reading.
     /// All paths are ZIP-relative and start with the root of the archive (no leading slash after
-    /// <see cref="ZipArchiveExt.GetEntryImproved"/> normalisation).
+    /// <see cref="EpubSharp.Extensions.ZipArchiveExt.GetEntryImproved"/> normalisation).
     /// </summary>
     public class EpubFormatPaths
     {

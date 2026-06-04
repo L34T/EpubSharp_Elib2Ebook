@@ -141,7 +141,7 @@ namespace EpubSharp.Format.Readers
             for (var i = 0; i + 1 < parts.Length; i += 2)
             {
                 var prefix = parts[i];
-                if (prefix.EndsWith(":", StringComparison.Ordinal))
+                if (prefix.EndsWith(':'))
                 {
                     prefix = prefix.Substring(0, prefix.Length - 1);
                 }

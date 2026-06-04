@@ -19,7 +19,7 @@ namespace EpubSharp.Format.Writers
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="nav"/> is <c>null</c>.</exception>
         public static string Format(NavDocument nav)
         {
-            if (nav == null) throw new ArgumentNullException(nameof(nav));
+            ArgumentNullException.ThrowIfNull(nav);
 
             var xhtmlNs = Constants.XhtmlNamespace;
             var opsNs = Constants.OpsNamespace;
