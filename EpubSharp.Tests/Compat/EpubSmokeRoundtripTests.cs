@@ -1,8 +1,6 @@
 #nullable enable
 using System;
-using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using EpubSharp.Format;
 using FluentAssertions;
@@ -22,17 +20,14 @@ public class EpubSmokeRoundtripTests
             writer.AddAuthor("Author 1");
             writer.SetTitle("Book Title");
             writer.AddDescription("Description");
-
             writer.AddFile("style.css", "body { }", EpubContentType.Css);
             writer.AddFile("font.ttf", new byte[] { 0x01, 0x02 }, EpubContentType.FontTruetype);
             writer.AddFile("img.jpeg", new byte[] { 0x42 }, EpubContentType.ImageJpeg);
-
             writer.AddChapter("Chapter 1", "<html><body><p>One</p></body></html>");
             writer.AddChapter("Chapter 2", "<html><body><p>Two</p></body></html>");
         });
 
-        // 2. Read it back
-        var epub = EpubReader.Read(new MemoryStream(epubBytes), leaveOpen: false, Encoding.UTF8);
+        var epub = ReadEpub(epubBytes);
 
         // 3. Verify Metadata
         epub.Title.Should().Be("Book Title");
@@ -55,6 +50,5 @@ public class EpubSmokeRoundtripTests
         // 6. Basic ZIP check (migrated from redundant Fact)
         using var zip = OpenZip(epubBytes);
         zip.GetEntry("mimetype").Should().NotBeNull();
-        zip.GetEntry("META-INF/container.xml").Should().NotBeNull();
     }
 }

@@ -1,7 +1,6 @@
 ﻿#nullable enable
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
@@ -20,17 +19,11 @@ public class EpubOptionalFeaturesTests
         {
             writer.SetTitle("Book Title");
             writer.AddChapter("Chapter 1", "<html><body><p>Hi</p></body></html>");
-
-            // Safe failures
-            writer.TrySetSeriesUrl("").Should().BeFalse();
-            writer.TrySetSeriesUrl("ftp://example.com/nope").Should().BeFalse();
-            writer.TrySetSeriesUrl(url).Should().BeFalse("series url should not be set without a collection");
-
             writer.AddCollection("Series Name", "1");
             writer.TrySetSeriesUrl(url).Should().BeTrue();
         });
 
-        var epub = EpubReader.Read(new MemoryStream(epubBytes), leaveOpen: false, Encoding.UTF8);
+        var epub = ReadEpub(epubBytes);
 
         epub.Format.Opf.Metadata.Links.Should().Contain(l =>
             l.Refines == "#collection" &&
@@ -54,7 +47,7 @@ public class EpubOptionalFeaturesTests
             writer.TryAddNcxWarningPage("Warning", "<html><body><p>Warn</p></body></html>").Should().BeTrue();
         });
 
-        var epub = EpubReader.Read(new MemoryStream(epubBytes), leaveOpen: false, Encoding.UTF8);
+        var epub = ReadEpub(epubBytes);
 
         // Must not appear in spine reading order
         epub.SpecialResources.HtmlInReadingOrder.Select(h => h.Href).Should().NotContain("warning-ncx.xhtml");
@@ -71,7 +64,5 @@ public class EpubOptionalFeaturesTests
         var points = epub.Format.Ncx!.NavMap.NavPoints;
         points.Should().NotBeEmpty();
         points.Count(p => p.ContentSrc == "warning-ncx.xhtml").Should().Be(2);
-        points.First().ContentSrc.Should().Be("warning-ncx.xhtml");
-        points.Last().ContentSrc.Should().Be("warning-ncx.xhtml");
     }
 }

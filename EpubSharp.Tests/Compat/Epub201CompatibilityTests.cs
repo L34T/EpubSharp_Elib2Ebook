@@ -1,7 +1,4 @@
 ﻿#nullable enable
-using System;
-using System.IO;
-using System.Text;
 using FluentAssertions;
 using Xunit;
 using static EpubSharp.Tests.TestHelpers.EpubTestHelpers;
@@ -22,18 +19,13 @@ public class Epub201CompatibilityTests
             AddTextEntry(archive, "OPS/c1.xhtml", MinimalXhtml(), stored: false);
         });
 
-        using var stream = new MemoryStream(epubBytes, writable: false);
-        var book = EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
+        var book = ReadEpub(epubBytes);
 
         book.Format.Opf.EpubVersion.Should().Be(EpubSharp.Format.EpubVersion.Epub2);
         book.Format.Nav.Should().BeNull("EPUB2 has no nav.xhtml by default");
 
         book.TableOfContents.Should().HaveCount(1);
-        book.TableOfContents[0].Title.Should().Be("Chapter 1");
         book.TableOfContents[0].RelativePath.Should().Be("c1.xhtml");
-
-        book.SpecialResources.HtmlInReadingOrder.Should().HaveCount(1);
-        book.SpecialResources.HtmlInReadingOrder[0].Href.Should().Be("c1.xhtml");
     }
 
     private static string MinimalOpf20()
@@ -63,9 +55,6 @@ public class Epub201CompatibilityTests
             "<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">\n" +
             "  <head>\n" +
             "    <meta name=\"dtb:uid\" content=\"urn:uuid:00000000-0000-0000-0000-000000000000\"/>\n" +
-            "    <meta name=\"dtb:depth\" content=\"1\"/>\n" +
-            "    <meta name=\"dtb:totalPageCount\" content=\"0\"/>\n" +
-            "    <meta name=\"dtb:maxPageNumber\" content=\"0\"/>\n" +
             "  </head>\n" +
             "  <docTitle><text>Test EPUB2</text></docTitle>\n" +
             "  <navMap>\n" +

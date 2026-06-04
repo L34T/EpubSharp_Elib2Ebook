@@ -1,7 +1,5 @@
 ﻿#nullable enable
 using System;
-using System.IO;
-using System.Text;
 using FluentAssertions;
 using Xunit;
 using static EpubSharp.Tests.TestHelpers.EpubTestHelpers;
@@ -18,8 +16,7 @@ public class EpubReaderNegativeTests
             AddTextEntry(archive, "mimetype", "application/epub+zip", stored: true);
         });
 
-        using var stream = new MemoryStream(epubBytes, writable: false);
-        Action act = () => EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
+        Action act = () => ReadEpub(epubBytes);
         act.Should().Throw<EpubParseException>();
     }
 
@@ -32,8 +29,7 @@ public class EpubReaderNegativeTests
             AddTextEntry(archive, "META-INF/container.xml", ContainerXml("EPUB/package.opf"), stored: false);
         });
 
-        using var stream = new MemoryStream(epubBytes, writable: false);
-        Action act = () => EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
+        Action act = () => ReadEpub(epubBytes);
         act.Should().Throw<EpubParseException>();
     }
 
@@ -48,8 +44,7 @@ public class EpubReaderNegativeTests
             AddTextEntry(archive, "EPUB/nav.xhtml", MinimalNav("missing.xhtml", "Missing"), stored: false);
         });
 
-        using var stream = new MemoryStream(epubBytes, writable: false);
-        Action act = () => EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
+        Action act = () => ReadEpub(epubBytes);
         act.Should().Throw<EpubParseException>();
     }
 

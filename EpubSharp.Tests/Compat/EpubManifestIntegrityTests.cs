@@ -33,11 +33,11 @@ public class EpubManifestIntegrityTests
         using var zip = OpenZip(epubBytes);
 
         // Resolve OPF path via container.xml (keeps this test valid if we ever change default paths).
-        var containerXml = ReadEntryText(zip, "META-INF/container.xml");
-        var opfPath = GetOpfFullPathFromContainerXml(containerXml);
+        
+        var opfPath = zip.GetOpfPath();
 
         var opf = ReadXml(zip, opfPath);
-        XNamespace opfNs = "http://www.idpf.org/2007/opf";
+        var opfNs = OpfNs;
 
         var opfDir = GetDir(opfPath);
         var items = opf.Root!.Element(opfNs + "manifest")!.Elements(opfNs + "item").ToList();
