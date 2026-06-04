@@ -1,23 +1,87 @@
 ﻿using System;
+using System.Linq;
 using System.Xml.Linq;
 
 namespace EpubSharp.Format.Writers
 {
+    /// <summary>
+    /// Serializes an EPUB 3 <see cref="NavDocument"/> as a valid XHTML5 navigation document.
+    /// The output is a self-contained XHTML file with the EPUB OPS namespace declared,
+    /// suitable for the <c>nav.xhtml</c> entry in an EPUB 3 package.
+    /// </summary>
     internal static class NavWriter
     {
+        /// <summary>
+        /// Formats the given <paramref name="nav"/> document as an XHTML5 string.
+        /// </summary>
+        /// <param name="nav">The navigation document to serialize.</param>
+        /// <returns>A string containing the full XHTML5 navigation document.</returns>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="nav"/> is <c>null</c>.</exception>
         public static string Format(NavDocument nav)
         {
             ArgumentNullException.ThrowIfNull(nav);
-            if (nav.Head?.Dom == null) throw new ArgumentException("Nav.Head.Dom is null", nameof(nav));
-            if (nav.Body?.Dom == null) throw new ArgumentException("Nav.Body.Dom is null", nameof(nav));
 
-            var html = new XElement(Constants.XhtmlNamespace + NavElements.Html,
-                new XAttribute(XNamespace.Xmlns + "epub", Constants.OpsNamespace),
-                nav.Head.Dom,
-                nav.Body.Dom);
+            var xhtmlNs = Constants.XhtmlNamespace;
+            var opsNs = Constants.OpsNamespace;
 
-            var xml = Constants.XmlDeclaration + "\n" + Constants.Html5Doctype + "\n" + html;
-            return xml;
+            // Build <head>
+            var headEl = new XElement(xhtmlNs + NavElements.Head);
+            headEl.Add(new XElement(xhtmlNs + NavElements.Meta, new XAttribute("charset", "utf-8")));
+
+            if (!string.IsNullOrWhiteSpace(nav.Head.Title))
+            {
+                headEl.Add(new XElement(xhtmlNs + NavElements.Title, nav.Head.Title));
+            }
+
+            foreach (var link in nav.Head.Links)
+            {
+                var linkEl = new XElement(xhtmlNs + NavElements.Link);
+                if (link.Href != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Href, link.Href));
+                if (link.Rel != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Rel, link.Rel));
+                if (link.Type != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Type, link.Type));
+                if (link.Class != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Class, link.Class));
+                if (link.Title != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Title, link.Title));
+                if (link.Media != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Media, link.Media));
+                headEl.Add(linkEl);
+            }
+
+            // Build <body> – apply the XHTML namespace to any elements that were created
+            // with plain string names (as done in EpubWriter() constructor).
+            XElement bodyEl;
+            if (nav.Body.Dom != null)
+            {
+                bodyEl = ApplyNamespace(nav.Body.Dom, xhtmlNs);
+            }
+            else
+            {
+                bodyEl = new XElement(xhtmlNs + NavElements.Body);
+            }
+
+            // Root <html> element with XHTML + EPUB OPS namespace declarations.
+            var htmlEl = new XElement(
+                xhtmlNs + NavElements.Html,
+                new XAttribute(XNamespace.Xmlns + "epub", opsNs.NamespaceName),
+                headEl,
+                bodyEl);
+
+            return Constants.Html5Doctype + "\n" + htmlEl;
+        }
+
+        /// <summary>
+        /// Recursively applies <paramref name="ns"/> to every element whose local name has
+        /// no namespace (i.e. was created with a plain string name).  Namespaced attributes
+        /// (e.g. <c>epub:type</c>) are preserved as-is.
+        /// </summary>
+        private static XElement ApplyNamespace(XElement el, XNamespace ns)
+        {
+            var newName = el.Name.Namespace == XNamespace.None
+                ? ns + el.Name.LocalName
+                : el.Name;
+
+            return new XElement(
+                newName,
+                el.Attributes(),
+                el.Nodes().Select(n => n is XElement child ? (object)ApplyNamespace(child, ns) : n));
         }
     }
 }

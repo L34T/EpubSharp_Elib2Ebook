@@ -15,25 +15,48 @@ using EpubSharp.Misc;
 
 namespace EpubSharp
 {
+    /// <summary>Identifies the image format of a cover image.</summary>
     public enum ImageFormat
     {
+        /// <summary>Graphics Interchange Format (GIF).</summary>
         Gif,
+        /// <summary>Portable Network Graphics (PNG).</summary>
         Png,
+        /// <summary>JPEG / JFIF compressed image.</summary>
         Jpeg,
+        /// <summary>Scalable Vector Graphics (SVG).</summary>
         Svg,
-        Webp, // epub3.3 . 2023
-        Avif, // epub3.4, 2026
-        Jxl // epub3.4, 2026
+        /// <summary>WebP image format (supported since EPUB 3.3).</summary>
+        Webp,
+        /// <summary>AV1 Image File Format (AVIF) (supported since EPUB 3.4).</summary>
+        Avif,
+        /// <summary>JPEG XL image format (supported since EPUB 3.4).</summary>
+        Jxl
     }
 
+    /// <summary>
+    /// Creates or modifies EPUB publications.
+    /// Use <see cref="EpubWriter()"/> to create a new empty EPUB 3 package, or
+    /// <see cref="EpubWriter(EpubBook)"/> to modify an existing one.
+    /// Call one of the <c>Write</c> overloads when finished.
+    /// </summary>
     public class EpubWriter
     {
         private readonly string opfPath = "EPUB/package.opf";
+
         private readonly string ncxPath = "EPUB/toc.ncx";
+
+        // navPath is set in the no-arg constructor so Write() generates nav.xhtml via NavWriter.
+        // It is null for EpubWriter(EpubBook) because the nav file already lives in resources.
+        private readonly string navPath;
 
         private readonly EpubFormat format;
         private readonly EpubResources resources;
 
+        /// <summary>
+        /// Initialises a new, empty EPUB 3 publication.
+        /// The package uses a Navigation Document (<c>nav.xhtml</c>) as required by EPUB 3;
+        /// </summary>
         public EpubWriter()
         {
             var opf = new OpfDocument
@@ -45,20 +68,37 @@ namespace EpubSharp
 
             opf.UniqueIdentifier = Constants.DefaultOpfUniqueIdentifier;
             opf.Metadata.Identifiers.Add(new OpfMetadataIdentifier
-                { Id = Constants.DefaultOpfUniqueIdentifier, Scheme = "uuid", Text = Guid.NewGuid().ToString("D") });
-            opf.Metadata.Dates.Add(new OpfMetadataDate { Text = DateTimeOffset.UtcNow.ToString("o") });
-            opf.Manifest.Items.Add(new OpfManifestItem
             {
-                Id = "ncx", Href = "toc.ncx", MediaType = ContentType.ContentTypeToMimeType[EpubContentType.DtbookNcx]
+                Id = Constants.DefaultOpfUniqueIdentifier,
+                Scheme = "uuid",
+                Text = Guid.NewGuid().ToString("D")
+            });
+            opf.Metadata.Dates.Add(new OpfMetadataDate { Text = DateTimeOffset.UtcNow.ToString("o") });
+
+            // EPUB 3 requires dc:language and the dcterms:modified meta.
+            opf.Metadata.Languages.Add("en");
+            opf.Metadata.Metas.Add(new OpfMetadataMeta
+            {
+                Property = "dcterms:modified",
+                Text = DateTimeOffset.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             });
 
+            // Legacy NCX for better compatibility (EPUB 3 requires a Navigation Document)
             opf.Manifest.Items.Add(new OpfManifestItem
+            {
+                Id = "ncx",
+                Href = "toc.ncx",
+                MediaType = ContentType.ContentTypeToMimeType[EpubContentType.DtbookNcx]
+            });
+
+            var navItem = new OpfManifestItem
             {
                 Id = "nav",
                 Href = "nav.xhtml",
-                MediaType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11],
-                Properties = new List<string> { "nav" }
-            });
+                MediaType = ContentType.ContentTypeToMimeType[EpubContentType.Xhtml11]
+            };
+            navItem.Properties.Add("nav");
+            opf.Manifest.Items.Add(navItem);
 
             format = new EpubFormat
             {
@@ -67,6 +107,7 @@ namespace EpubSharp
                 Ncx = new NcxDocument()
             };
 
+            // Initialise the Nav body DOM with an empty TOC structure.
             format.Nav.Head.Dom = new XElement(Constants.XhtmlNamespace + NavElements.Head);
             format.Nav.Body.Dom =
                 new XElement(
@@ -77,6 +118,9 @@ namespace EpubSharp
 
             resources = new EpubResources();
 
+            // This path is used by Write() to serialise nav.xhtml via NavWriter.
+            navPath = "EPUB/nav.xhtml";
+            
             resources.Html.Add(new EpubTextFile
             {
                 AbsolutePath = "nav.xhtml",
@@ -87,7 +131,15 @@ namespace EpubSharp
             });
         }
 
-        [Obsolete("Seems to be removed in Elib2Ebook")]
+        /// <summary>
+        /// Initialises an <see cref="EpubWriter"/> from an existing <see cref="EpubBook"/>
+        /// so that it can be modified and saved again.
+        /// The nav.xhtml of the source book is preserved as-is (written from the resource bytes).
+        /// If the source book contains an NCX, it is regenerated from the in-memory model.
+        /// </summary>
+        /// <param name="book">The source EPUB book to modify.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="book"/> is <c>null</c>.</exception>
+        /// <exception cref="ArgumentException">Thrown when the book's OPF document is <c>null</c>.</exception>
         public EpubWriter(EpubBook book)
         {
             ArgumentNullException.ThrowIfNull(book);
@@ -106,8 +158,25 @@ namespace EpubSharp
 
                 ncxPath = ncxPath.ToAbsolutePath(opfPath);
             }
+
+            // If the book has an EPUB 3 Navigation Document, Write() will regenerate it from
+            // the in-memory DOM via NavWriter (so that DOM mutations like ClearChapters/AddChapter
+            // are properly persisted).  We record the absolute archive path here; the nav file
+            // is intentionally left in resources.Html so that ClearChapters() can still find and
+            // remove it when the nav is listed in the spine (which is EPUB 3 best practice).
+            var navRelPath = format.Opf.FindNavPath();
+            if (navRelPath != null && format.Nav != null)
+            {
+                navPath = navRelPath.ToAbsolutePath(opfPath);
+            }
         }
 
+        /// <summary>
+        /// Writes <paramref name="book"/> to <paramref name="filename"/> on disk.
+        /// This is a convenience wrapper around <see cref="EpubWriter(EpubBook)"/> and <see cref="Write(string)"/>.
+        /// </summary>
+        /// <param name="book">The EPUB book to write.</param>
+        /// <param name="filename">Destination file path.</param>
         [Obsolete("Seems to be removed in Elib2Ebook")]
         public static void Write(EpubBook book, string filename)
         {
@@ -118,6 +187,12 @@ namespace EpubSharp
             writer.Write(filename);
         }
 
+        /// <summary>
+        /// Writes <paramref name="book"/> to the given <paramref name="stream"/>.
+        /// This is a convenience wrapper around <see cref="EpubWriter(EpubBook)"/> and <see cref="Write(Stream)"/>.
+        /// </summary>
+        /// <param name="book">The EPUB book to write.</param>
+        /// <param name="stream">Destination stream.</param>
         [Obsolete("Seems to be removed in Elib2Ebook")]
         public static void Write(EpubBook book, Stream stream)
         {
@@ -144,6 +219,13 @@ namespace EpubSharp
             return epub;
         }
 
+        /// <summary>
+        /// Adds an arbitrary resource file to the publication.
+        /// The file is added to the manifest and to the appropriate resource collection.
+        /// </summary>
+        /// <param name="filename">File name (used as the manifest href).</param>
+        /// <param name="content">File content as raw bytes.</param>
+        /// <param name="type">EPUB content type that determines the manifest media-type and resource bucket.</param>
         public void AddFile(string filename, byte[] content, EpubContentType type)
         {
             if (string.IsNullOrWhiteSpace(filename)) throw new ArgumentNullException(nameof(filename));
@@ -173,6 +255,9 @@ namespace EpubSharp
                 case EpubContentType.ImageJpeg:
                 case EpubContentType.ImagePng:
                 case EpubContentType.ImageSvg:
+                case EpubContentType.ImageWebp:
+                case EpubContentType.ImageAvif:
+                case EpubContentType.ImageJxl:
                     resources.Images.Add(file);
                     break;
 
@@ -194,34 +279,53 @@ namespace EpubSharp
             });
         }
 
+        /// <summary>
+        /// Adds an arbitrary resource file to the publication.
+        /// </summary>
         public void AddFile(string filename, string content, EpubContentType type)
         {
             AddFile(filename, Constants.DefaultEncoding.GetBytes(content), type);
         }
 
+        /// <summary>
+        /// Adds a primary author to the publication metadata.
+        /// </summary>
+        /// <param name="author">The author's name.</param>
         public void AddAuthor(string author)
         {
             if (string.IsNullOrWhiteSpace(author)) throw new ArgumentNullException(nameof(author));
             format.Opf.Metadata.Creators.Add(new OpfMetadataCreator { Text = author });
         }
 
+        /// <summary>
+        /// Adds a description to the publication metadata.
+        /// </summary>
         public void AddDescription(string description)
         {
-            if (string.IsNullOrWhiteSpace(description)) throw new ArgumentNullException("description");
+            if (string.IsNullOrWhiteSpace(description)) throw new ArgumentNullException(nameof(description));
             format.Opf.Metadata.Descriptions.Add(description);
         }
 
+        /// <summary>
+        /// Adds a language code to the publication metadata.
+        /// </summary>
         public void AddLanguage(string lang)
         {
-            if (string.IsNullOrWhiteSpace(lang)) throw new ArgumentNullException("lang");
+            if (string.IsNullOrWhiteSpace(lang)) throw new ArgumentNullException(nameof(lang));
             format.Opf.Metadata.Languages.Add(lang);
         }
 
+        /// <summary>
+        /// Removes all authors from the publication metadata.
+        /// </summary>
         public void ClearAuthors()
         {
             format.Opf.Metadata.Creators.Clear();
         }
 
+        /// <summary>
+        /// Removes a specific author from the publication metadata.
+        /// </summary>
         public void RemoveAuthor(string author)
         {
             if (string.IsNullOrWhiteSpace(author)) throw new ArgumentNullException(nameof(author));
@@ -231,14 +335,20 @@ namespace EpubSharp
             }
         }
 
+        /// <summary>
+        /// Removes all titles from the publication metadata.
+        /// </summary>
         public void RemoveTitle()
         {
             format.Opf.Metadata.Titles.Clear();
         }
 
+        /// <summary>
+        /// Adds collection membership metadata to the publication.
+        /// </summary>
         public void AddCollection(string name, string number)
         {
-            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException("name");
+            if (string.IsNullOrWhiteSpace(name)) throw new ArgumentNullException(nameof(name));
             format.Opf.Metadata.Metas.Add(new OpfMetadataMeta
             {
                 Property = "belongs-to-collection",
@@ -262,6 +372,9 @@ namespace EpubSharp
             }
         }
 
+        /// <summary>
+        /// Attempts to set a series URL in the metadata.
+        /// </summary>
         public bool TrySetSeriesUrl(string seriesUrl)
         {
             const string prefix = "todo";
@@ -284,6 +397,9 @@ namespace EpubSharp
             return true;
         }
 
+        /// <summary>
+        /// Attempts to add a warning page to the NCX TOC for legacy readers.
+        /// </summary>
         public bool TryAddNcxWarningPage(string title, string xhtml)
         {
             const string warningHref = "warning-ncx.xhtml";
@@ -303,6 +419,9 @@ namespace EpubSharp
             return true;
         }
 
+        /// <summary>
+        /// Attempts to set the EPUB package version (e.g., "3.2").
+        /// </summary>
         public bool TrySetPackageVersion(string packageVersion)
         {
             if (!IsSingleDigitVersion(packageVersion))
@@ -457,6 +576,9 @@ namespace EpubSharp
             }
         }
 
+        /// <summary>
+        /// Sets the primary title of the publication.
+        /// </summary>
         public void SetTitle(string title)
         {
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentNullException(nameof(title));
@@ -464,6 +586,18 @@ namespace EpubSharp
             format.Opf.Metadata.Titles.Add(title);
         }
 
+        /// <summary>
+        /// Adds a new chapter to the publication.
+        /// The chapter HTML is stored as a resource file, a manifest and spine entry are created,
+        /// and both the EPUB 3 Navigation Document TOC and (if present) the NCX are updated.
+        /// </summary>
+        /// <param name="title">Display title shown in the table of contents.</param>
+        /// <param name="html">Full XHTML content of the chapter.</param>
+        /// <param name="fileId">
+        /// Optional unique identifier used as the manifest item ID and file name base.
+        /// A new GUID is generated when omitted.
+        /// </param>
+        /// <returns>An <see cref="EpubChapter"/> describing the newly added chapter.</returns>
         public EpubChapter AddChapter(string title, string html, string fileId = null)
         {
             if (string.IsNullOrWhiteSpace(title)) throw new ArgumentNullException(nameof(title));
@@ -510,6 +644,9 @@ namespace EpubSharp
             };
         }
 
+        /// <summary>
+        /// Removes all chapters from the publication.
+        /// </summary>
         [Obsolete("Seems to be removed in Elib2Ebook")]
         public void ClearChapters()
         {
@@ -548,11 +685,9 @@ namespace EpubSharp
             }
         }
 
-        //public void InsertChapter(string title, string html, int index, EpubChapter parent = null)
-        //{
-        //    throw new NotImplementedException("Implement me!");
-        //}
-
+        /// <summary>
+        /// Removes the cover image from the publication.
+        /// </summary>
         public void RemoveCover()
         {
             var path = format.Opf.FindAndRemoveCover();
@@ -565,6 +700,13 @@ namespace EpubSharp
             }
         }
 
+        /// <summary>
+        /// Sets or replaces the cover image of the publication.
+        /// Any existing cover is removed first (see <see cref="RemoveCover"/>).
+        /// </summary>
+        /// <param name="data">Raw image bytes.</param>
+        /// <param name="imageFormat">Format of the image data.</param>
+        /// <exception cref="ArgumentNullException">Thrown when <paramref name="data"/> is <c>null</c>.</exception>
         public void SetCover(byte[] data, ImageFormat imageFormat)
         {
             ArgumentNullException.ThrowIfNull(data);
@@ -596,17 +738,16 @@ namespace EpubSharp
                     filename = "cover.webp";
                     type = EpubContentType.ImageWebp;
                     break;
+                case ImageFormat.Avif:
+                    filename = "cover.avif";
+                    type = EpubContentType.ImageAvif;
+                    break;
+                case ImageFormat.Jxl:
+                    filename = "cover.jxl";
+                    type = EpubContentType.ImageJxl;
+                    break;
                 default:
-                    throw new ArgumentException($"Unsupported cover format: {format}", nameof(format));
-                // TODO: epub3.4 still in draft for now and image/avif image/jxl not implemented yet in readers
-                // case ImageFormat.Avif:
-                //     filename = "cover.avif";
-                //     type = EpubContentType.ImageAvif;
-                //     break;
-                // case ImageFormat.Jxl:
-                //     filename = "cover.jxl";
-                //     type = EpubContentType.ImageJxl;
-                //     break;
+                    throw new ArgumentException($"Unsupported cover format: {imageFormat}", nameof(imageFormat));
             }
 
             var coverResource = new EpubByteFile
@@ -629,6 +770,9 @@ namespace EpubSharp
             format.Opf.Manifest.Items.Add(coverItem);
         }
 
+        /// <summary>
+        /// Serialises the publication to a byte array in memory.
+        /// </summary>
         [Obsolete("Seems to be not used anymore", true)]
         public byte[] Write()
         {
@@ -638,6 +782,9 @@ namespace EpubSharp
             return stream.ReadToEnd();
         }
 
+        /// <summary>
+        /// Writes the publication to the specified file path.
+        /// </summary>
         [Obsolete("Seems to be removed in Elib2Ebook")]
         public void Write(string filename)
         {
@@ -647,7 +794,10 @@ namespace EpubSharp
             }
         }
 
-        // TODO: remove `#pragma warning disable CS4014` when this sync `Write(Stream stream)` method removed
+        /// <summary>
+        /// Serialises the publication to the provided <paramref name="stream"/> as a ZIP-based EPUB archive.
+        /// </summary>
+        /// <param name="stream">The writable stream to write the EPUB data into.</param>
         [Obsolete("Seems to be removed in Elib2Ebook", true)]
         public void Write(Stream stream)
         {
@@ -657,10 +807,22 @@ namespace EpubSharp
                 archive.CreateEntry(Constants.OcfPath, OcfWriter.Format(opfPath));
                 archive.CreateEntry(opfPath, OpfWriter.Format(format.Opf));
 
-                if (format.Ncx != null)
+                if (format.Ncx != null && ncxPath != null)
                 {
                     archive.CreateEntry(ncxPath, NcxWriter.Format(format.Ncx));
                 }
+
+                // Write the EPUB 3 Navigation Document from the in-memory NavDocument DOM
+                // (via NavWriter) so that any DOM mutations are persisted.
+                // The nav.xhtml entry in resources.Html (if present) is intentionally skipped
+                // below to avoid overwriting the freshly generated content.
+                if (format.Nav != null && navPath != null)
+                {
+                    archive.CreateEntry(navPath, NavWriter.Format(format.Nav));
+                }
+
+                // Determine the nav href (relative to OPF) so we can skip it from resources.
+                var navRelHref = navPath != null ? format.Opf.FindNavPath() : null;
 
                 var allFiles = new[]
                 {
@@ -670,21 +832,32 @@ namespace EpubSharp
                     resources.Fonts,
                     resources.Other
                 }.SelectMany(collection => collection as EpubFile[] ?? collection.ToArray());
+
                 var relativePath = PathExt.GetDirectoryPath(opfPath);
                 foreach (var file in allFiles)
                 {
+                    // Skip the nav.xhtml resource — it was already written by NavWriter above.
+                    if (navRelHref != null && file.Href == navRelHref)
+                        continue;
+
                     var entryName = PathExt.Combine(relativePath, file.Href).TrimStart('/');
                     archive.CreateEntry(entryName, file.Content);
                 }
             }
         }
 
+        /// <summary>
+        /// Writes the publication to the specified file path asynchronously.
+        /// </summary>
         public async Task Write(string filename, IEnumerable<FileMeta> files)
         {
             using var file = File.Create(filename);
             await Write(file, files);
         }
 
+        /// <summary>
+        /// Writes the publication to the provided <paramref name="stream"/> asynchronously.
+        /// </summary>
         public async Task Write(Stream stream, IEnumerable<FileMeta> files)
         {
             EnsureDefaultLanguage();
@@ -755,7 +928,7 @@ namespace EpubSharp
             var data = Constants.DefaultEncoding.GetBytes(content);
             var entry = archive.CreateEntry(file, CompressionLevel.NoCompression);
             await using var stream = entry.Open();
-            await stream.WriteAsync(data, 0, data.Length);
+            await stream.WriteAsync(data);
         }
 
         private void EnsureNavXhtmlUpToDate()
@@ -892,18 +1065,5 @@ namespace EpubSharp
 
             return element;
         }
-
-        // Old code to add toc.ncx
-        /*
-            if (opf.Spine.Toc != null)
-            {
-                var ncxPath = opf.FindNcxPath();
-                if (ncxPath == null)
-                {
-                    throw new EpubWriteException("Spine TOC is set, but NCX path is not.");
-                }
-                manifest.Add(new XElement(OpfElements.Item, new XAttribute(OpfManifestItem.Attributes.Id, "ncx"), new XAttribute(OpfManifestItem.Attributes.MediaType, ContentType.ContentTypeToMimeType[EpubContentType.DtbookNcx]), new XAttribute(OpfManifestItem.Attributes.Href, ncxPath)));
-            }
-         */
     }
 }

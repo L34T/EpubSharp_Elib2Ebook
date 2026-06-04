@@ -141,7 +141,7 @@ namespace EpubSharp.Format.Readers
             for (var i = 0; i + 1 < parts.Length; i += 2)
             {
                 var prefix = parts[i];
-                if (prefix.EndsWith(":", StringComparison.Ordinal))
+                if (prefix.EndsWith(':'))
                 {
                     prefix = prefix.Substring(0, prefix.Length - 1);
                 }
@@ -158,21 +158,24 @@ namespace EpubSharp.Format.Readers
         {
             if (string.IsNullOrWhiteSpace(version)) throw new ArgumentNullException(nameof(version));
 
-            switch (version)
+            if (version == "2.0")
             {
-                case "2.0":
-                    return EpubVersion.Epub2;
-                case "3.0":
-                case "3.0.1":
-                case "3.1":
-                case "3.2":
-                case "3.3":
-                // 2026
-                case "3.4":
-                    return EpubVersion.Epub3;
-                default:
-                    throw new Exception($"Unsupported EPUB version: {version}.");
+                return EpubVersion.Epub2;
             }
+
+            if (version == "3.0" || version == "3.0.1" || version == "3.1")
+            {
+                return EpubVersion.Epub3;
+            }
+
+            // EPUB 3.2, 3.3, and 3.4 still use version="3.0" in the package element per spec,
+            // but some tools may write the actual release number.
+            if (version == "3.2" || version == "3.3" || version == "3.4")
+            {
+                return EpubVersion.Epub34;
+            }
+
+            throw new Exception($"Unsupported EPUB version: {version}.");
         }
     }
 }

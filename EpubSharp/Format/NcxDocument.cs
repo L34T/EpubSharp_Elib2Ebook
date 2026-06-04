@@ -23,18 +23,31 @@ namespace EpubSharp.Format
     }
 
     /// <summary>
-    /// DAISY’s Navigation Center eXtended (NCX)
+    /// Represents the DAISY Navigation Center eXtended (NCX) document used in EPUB 2
+    /// publications for navigation (typically stored as <c>toc.ncx</c>).
+    /// <para>
+    /// The NCX provides a hierarchical table of contents (<see cref="NavMap"/>), an optional
+    /// page list, and optional navigation lists.  In EPUB 3 this format is superseded by the
+    /// XHTML5 Navigation Document; see <see cref="NavDocument"/>.
+    /// </para>
     /// </summary>
     public class NcxDocument
     {
+        /// <summary>The <c>&lt;head&gt;</c> meta elements (e.g. <c>dtb:uid</c>, <c>dtb:depth</c>).</summary>
         public IList<NcxMeta> Meta { get; internal set; } = new List<NcxMeta>();
+        /// <summary>Publication title from the <c>&lt;docTitle&gt;</c> element.</summary>
         public string DocTitle { get; internal set; }
+        /// <summary>Primary author from the <c>&lt;docAuthor&gt;</c> element, or <c>null</c>.</summary>
         public string DocAuthor { get; internal set; }
+        /// <summary>The required <c>&lt;navMap&gt;</c> element containing the hierarchical TOC.</summary>
         public NcxNapMap NavMap { get; internal set; } = new NcxNapMap(); // <navMap> is a required element in NCX.
+        /// <summary>Optional <c>&lt;pageList&gt;</c> element, or <c>null</c>.</summary>
         public NcxPageList PageList { get; internal set; }
+        /// <summary>Optional <c>&lt;navList&gt;</c> element, or <c>null</c>.</summary>
         public NcxNavList NavList { get; internal set; }
     }
 
+    /// <summary>A single <c>&lt;meta&gt;</c> element from the NCX <c>&lt;head&gt;</c>.</summary>
     public class NcxMeta
     {
         internal static class Attributes
@@ -49,16 +62,26 @@ namespace EpubSharp.Format
         public string Scheme { get; internal set; }
     }
 
+    /// <summary>
+    /// The NCX <c>&lt;navMap&gt;</c> element, which is the root of the navigation hierarchy.
+    /// Contains an ordered list of <see cref="NcxNavPoint"/> entries.
+    /// </summary>
     public class NcxNapMap
     {
         /// <summary>
-        /// Populated only when an EPUB with NCX is read.
+        /// The raw <c>&lt;navMap&gt;</c> XElement, populated when reading an EPUB from disk.
+        /// <c>null</c> for navMaps constructed programmatically.
         /// </summary>
         public XElement Dom { get; internal set; }
 
+        /// <summary>Top-level navigation points (chapters).  Each may contain nested points.</summary>
         public IList<NcxNavPoint> NavPoints { get; internal set; } = new List<NcxNavPoint>();
     }
 
+    /// <summary>
+    /// A single navigation point (<c>&lt;navPoint&gt;</c>) inside an NCX <c>&lt;navMap&gt;</c>.
+    /// Represents one chapter or section and may contain nested <see cref="NavPoints"/>.
+    /// </summary>
     public class NcxNavPoint
     {
         internal static class Attributes
