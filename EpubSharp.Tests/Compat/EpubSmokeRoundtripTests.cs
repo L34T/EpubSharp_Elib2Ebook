@@ -1,3 +1,4 @@
+#nullable enable
 using System;
 using System.IO;
 using System.Linq;
@@ -6,66 +7,54 @@ using System.Threading.Tasks;
 using EpubSharp.Format;
 using FluentAssertions;
 using Xunit;
+using static EpubSharp.Tests.TestHelpers.EpubTestHelpers;
 
 namespace EpubSharp.Tests.Compat;
 
 public class EpubSmokeRoundtripTests
 {
     [Fact]
-    public async Task Writer_then_reader_roundtrip_is_working_for_basic_book()
+    public async Task Full_roundtrip_preserves_all_resource_types_and_reading_order()
     {
-        var writer = new EpubWriter();
+        // 1. Create a complex book with various resources
+        var epubBytes = await WriteEpubAsync(writer =>
+        {
+            writer.AddAuthor("Author 1");
+            writer.SetTitle("Book Title");
+            writer.AddDescription("Description");
 
-        writer.AddAuthor("Author 1");
-        writer.SetTitle("Book Title");
-        writer.AddDescription("Description");
+            writer.AddFile("style.css", "body { }", EpubContentType.Css);
+            writer.AddFile("font.ttf", new byte[] { 0x01, 0x02 }, EpubContentType.FontTruetype);
+            writer.AddFile("img.jpeg", new byte[] { 0x42 }, EpubContentType.ImageJpeg);
 
-        writer.AddFile("style.css", "body { }", EpubContentType.Css);
-        writer.AddFile("font.ttf", new byte[] { 0x01, 0x02 }, EpubContentType.FontTruetype);
-        writer.AddFile("img.jpeg", new byte[] { 0x42 }, EpubContentType.ImageJpeg);
+            writer.AddChapter("Chapter 1", "<html><body><p>One</p></body></html>");
+            writer.AddChapter("Chapter 2", "<html><body><p>Two</p></body></html>");
+        });
 
-        writer.AddChapter("Chapter 1", "<html><body><p>One</p></body></html>");
-        writer.AddChapter("Chapter 2", "<html><body><p>Two</p></body></html>");
+        // 2. Read it back
+        var epub = EpubReader.Read(new MemoryStream(epubBytes), leaveOpen: false, Encoding.UTF8);
 
-        await using var stream = new MemoryStream();
-        await writer.Write(stream, []);
-
-        stream.Position = 0;
-        var epub = EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
-
+        // 3. Verify Metadata
         epub.Title.Should().Be("Book Title");
         epub.Authors.Should().Contain("Author 1");
 
+        // 4. Verify Resources
         epub.Resources.Css.Should().ContainSingle(f => f.Href == "style.css");
         epub.Resources.Fonts.Should().ContainSingle(f => f.Href == "font.ttf");
         epub.Resources.Images.Should().ContainSingle(f => f.Href == "img.jpeg");
 
-        epub.TableOfContents.Should().HaveCount(2);
+        // 5. Verify Reading Order (Spine)
         epub.SpecialResources.HtmlInReadingOrder.Should().HaveCount(2);
+        epub.TableOfContents.Should().HaveCount(2);
 
-        // Ensure we did not accidentally place nav.xhtml into the spine reading order.
-        epub.SpecialResources.HtmlInReadingOrder.Select(h => h.Href).Should().NotContain("nav.xhtml");
-    }
-
-    [Fact]
-    public async Task Writer_produces_an_epub_that_can_be_opened_as_zip()
-    {
-        var writer = new EpubWriter();
-        writer.SetTitle("Book Title");
-        writer.AddChapter("Chapter 1", "<html><body><p>Hi</p></body></html>");
-
-        await using var stream = new MemoryStream();
-        await writer.Write(stream, []);
-
-        stream.ToArray().Length.Should().BeGreaterThan(0);
-        stream.Position = 0;
-
-        using var zip = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read,
-            leaveOpen: true, Encoding.UTF8);
-
-        zip.Entries.Should().NotBeEmpty();
+        var spineHrefs = epub.SpecialResources.HtmlInReadingOrder.Select(h => h.Href).ToList();
+        
+        // Ensure nav.xhtml is NOT part of the reading flow (EPUB3 requirement)
+        spineHrefs.Should().NotContain("nav.xhtml");
+        
+        // 6. Basic ZIP check (migrated from redundant Fact)
+        using var zip = OpenZip(epubBytes);
         zip.GetEntry("mimetype").Should().NotBeNull();
         zip.GetEntry("META-INF/container.xml").Should().NotBeNull();
     }
 }
-

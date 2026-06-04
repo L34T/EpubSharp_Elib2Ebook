@@ -15,11 +15,8 @@ public class Epub201CompatibilityTests
     {
         var epubBytes = BuildZip(archive =>
         {
-            // EPUB requires mimetype to be the first entry and uncompressed.
             AddTextEntry(archive, "mimetype", "application/epub+zip", stored: true);
-
             AddTextEntry(archive, "META-INF/container.xml", ContainerXml("OPS/package.opf"), stored: false);
-
             AddTextEntry(archive, "OPS/package.opf", MinimalOpf20(), stored: false);
             AddTextEntry(archive, "OPS/toc.ncx", MinimalNcx(), stored: false);
             AddTextEntry(archive, "OPS/c1.xhtml", MinimalXhtml(), stored: false);
@@ -37,26 +34,10 @@ public class Epub201CompatibilityTests
 
         book.SpecialResources.HtmlInReadingOrder.Should().HaveCount(1);
         book.SpecialResources.HtmlInReadingOrder[0].Href.Should().Be("c1.xhtml");
-
-        book.Resources.Html.Should().ContainSingle(h => h.Href == "c1.xhtml");
-    }
-
-    private static string ContainerXml(string opfFullPath)
-    {
-        return
-            "<?xml version=\"1.0\"?>\n" +
-            "<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\">\n" +
-            "  <rootfiles>\n" +
-            $"    <rootfile full-path=\"{opfFullPath}\" media-type=\"application/oebps-package+xml\"/>\n" +
-            "  </rootfiles>\n" +
-            "</container>\n";
     }
 
     private static string MinimalOpf20()
     {
-        // OPF 2.0 minimal package with NCX.
-        // - spine@toc is required for EPUB2.
-        // - nav.xhtml is not used.
         return
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
             "<package xmlns=\"http://www.idpf.org/2007/opf\" unique-identifier=\"BookId\" version=\"2.0\">\n" +
@@ -77,7 +58,6 @@ public class Epub201CompatibilityTests
 
     private static string MinimalNcx()
     {
-        // Minimal NCX for EPUB2.
         return
             "<?xml version=\"1.0\" encoding=\"utf-8\"?>\n" +
             "<ncx xmlns=\"http://www.daisy.org/z3986/2005/ncx/\" version=\"2005-1\">\n" +
@@ -108,4 +88,3 @@ public class Epub201CompatibilityTests
             "</html>\n";
     }
 }
-

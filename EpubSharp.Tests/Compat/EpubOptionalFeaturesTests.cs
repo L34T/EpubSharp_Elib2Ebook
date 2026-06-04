@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit;
+using static EpubSharp.Tests.TestHelpers.EpubTestHelpers;
 
 namespace EpubSharp.Tests.Compat;
 
@@ -15,23 +16,21 @@ public class EpubOptionalFeaturesTests
     {
         const string url = "https://example.com/work/series/12345";
 
-        var writer = new EpubWriter();
-        writer.SetTitle("Book Title");
-        writer.AddChapter("Chapter 1", "<html><body><p>Hi</p></body></html>");
+        var epubBytes = await WriteEpubAsync(writer =>
+        {
+            writer.SetTitle("Book Title");
+            writer.AddChapter("Chapter 1", "<html><body><p>Hi</p></body></html>");
 
-        // Safe failures
-        writer.TrySetSeriesUrl("").Should().BeFalse();
-        writer.TrySetSeriesUrl("ftp://example.com/nope").Should().BeFalse();
-        writer.TrySetSeriesUrl(url).Should().BeFalse("series url should not be set without a collection");
+            // Safe failures
+            writer.TrySetSeriesUrl("").Should().BeFalse();
+            writer.TrySetSeriesUrl("ftp://example.com/nope").Should().BeFalse();
+            writer.TrySetSeriesUrl(url).Should().BeFalse("series url should not be set without a collection");
 
-        writer.AddCollection("Series Name", "1");
-        writer.TrySetSeriesUrl(url).Should().BeTrue();
+            writer.AddCollection("Series Name", "1");
+            writer.TrySetSeriesUrl(url).Should().BeTrue();
+        });
 
-        await using var stream = new MemoryStream();
-        await writer.Write(stream, []);
-
-        stream.Position = 0;
-        var epub = EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
+        var epub = EpubReader.Read(new MemoryStream(epubBytes), leaveOpen: false, Encoding.UTF8);
 
         epub.Format.Opf.Metadata.Links.Should().Contain(l =>
             l.Refines == "#collection" &&
@@ -48,17 +47,14 @@ public class EpubOptionalFeaturesTests
     [Fact]
     public async Task TryAddNcxWarningPage_does_not_affect_spine_or_nav()
     {
-        var writer = new EpubWriter();
-        writer.SetTitle("Book Title");
-        writer.AddChapter("Chapter 1", "<html><body><p>Hi</p></body></html>");
+        var epubBytes = await WriteEpubAsync(writer =>
+        {
+            writer.SetTitle("Book Title");
+            writer.AddChapter("Chapter 1", "<html><body><p>Hi</p></body></html>");
+            writer.TryAddNcxWarningPage("Warning", "<html><body><p>Warn</p></body></html>").Should().BeTrue();
+        });
 
-        writer.TryAddNcxWarningPage("Warning", "<html><body><p>Warn</p></body></html>").Should().BeTrue();
-
-        await using var stream = new MemoryStream();
-        await writer.Write(stream, []);
-
-        stream.Position = 0;
-        var epub = EpubReader.Read(stream, leaveOpen: true, Encoding.UTF8);
+        var epub = EpubReader.Read(new MemoryStream(epubBytes), leaveOpen: false, Encoding.UTF8);
 
         // Must not appear in spine reading order
         epub.SpecialResources.HtmlInReadingOrder.Select(h => h.Href).Should().NotContain("warning-ncx.xhtml");

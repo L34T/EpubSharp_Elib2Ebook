@@ -7,6 +7,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml.Linq;
+using FluentAssertions;
 
 namespace EpubSharp.Tests.TestHelpers;
 
@@ -135,5 +136,37 @@ public static class EpubTestHelpers
         }
         return ms.ToArray();
     }
-}
 
+    public static string ContainerXml(string opfFullPath)
+    {
+        return
+            "<?xml version=\"1.0\"?>\n" +
+            "<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\">\n" +
+            "  <rootfiles>\n" +
+            $"    <rootfile full-path=\"{opfFullPath}\" media-type=\"application/oebps-package+xml\"/>\n" +
+            "  </rootfiles>\n" +
+            "</container>\n";
+    }
+
+    public static void AssertMimetypeIsFirstAndStored(byte[] zipBytes)
+    {
+        zipBytes.Length.Should().BeGreaterThan(30);
+        zipBytes[0].Should().Be((byte)'P');
+        zipBytes[1].Should().Be((byte)'K');
+        zipBytes[2].Should().Be(0x03);
+        zipBytes[3].Should().Be(0x04);
+        var compressionMethod = zipBytes[8] | (zipBytes[9] << 8);
+        compressionMethod.Should().Be(0, "mimetype must be stored (no compression)");
+    }
+
+    public static void AssertNavHasSingleToc(string navXml, int expectedLinks)
+    {
+        XNamespace xhtml = "http://www.w3.org/1999/xhtml";
+        XNamespace epub = "http://www.idpf.org/2007/ops";
+        var doc = XDocument.Parse(navXml);
+        doc.Root!.Name.Should().Be(xhtml + "html");
+        var navs = doc.Descendants(xhtml + "nav").Where(n => (string?)n.Attribute(epub + "type") == "toc").ToList();
+        navs.Should().HaveCount(1);
+        navs[0].Descendants(xhtml + "a").Count().Should().Be(expectedLinks);
+    }
+}

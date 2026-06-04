@@ -15,7 +15,6 @@ public class EpubReaderNegativeTests
     {
         var epubBytes = BuildZip(archive =>
         {
-            // Intentionally omit META-INF/container.xml
             AddTextEntry(archive, "mimetype", "application/epub+zip", stored: true);
         });
 
@@ -30,10 +29,7 @@ public class EpubReaderNegativeTests
         var epubBytes = BuildZip(archive =>
         {
             AddTextEntry(archive, "mimetype", "application/epub+zip", stored: true);
-
             AddTextEntry(archive, "META-INF/container.xml", ContainerXml("EPUB/package.opf"), stored: false);
-
-            // Intentionally omit EPUB/package.opf
         });
 
         using var stream = new MemoryStream(epubBytes, writable: false);
@@ -47,13 +43,8 @@ public class EpubReaderNegativeTests
         var epubBytes = BuildZip(archive =>
         {
             AddTextEntry(archive, "mimetype", "application/epub+zip", stored: true);
-
             AddTextEntry(archive, "META-INF/container.xml", ContainerXml("EPUB/package.opf"), stored: false);
-
-            // OPF references missing.xhtml, but we do not add it to zip.
             AddTextEntry(archive, "EPUB/package.opf", MinimalOpfWithMissingXhtml(), stored: false);
-
-            // nav.xhtml exists (required baseline for EPUB3), but points to missing.xhtml too.
             AddTextEntry(archive, "EPUB/nav.xhtml", MinimalNav("missing.xhtml", "Missing"), stored: false);
         });
 
@@ -62,20 +53,8 @@ public class EpubReaderNegativeTests
         act.Should().Throw<EpubParseException>();
     }
 
-    private static string ContainerXml(string opfFullPath)
-    {
-        return
-            "<?xml version=\"1.0\"?>\n" +
-            "<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\">\n" +
-            "  <rootfiles>\n" +
-            $"    <rootfile full-path=\"{opfFullPath}\" media-type=\"application/oebps-package+xml\"/>\n" +
-            "  </rootfiles>\n" +
-            "</container>\n";
-    }
-
     private static string MinimalOpfWithMissingXhtml()
     {
-        // Minimal EPUB3 OPF: 1 identifier, 1 title, 1 language, NAV item, and one missing spine doc.
         return
             "<?xml version=\"1.0\"?>\n" +
             "<package xmlns=\"http://www.idpf.org/2007/opf\" unique-identifier=\"pub-id\" version=\"3.2\">\n" +
