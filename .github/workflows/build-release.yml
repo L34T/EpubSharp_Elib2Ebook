@@ -25,11 +25,12 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: ${{ matrix.sdk }}
+          include-prerelease: true
 
       - name: Restore
         run: |
-          dotnet restore EpubSharp/EpubSharp.csproj -c Release -p:NetVersion=${{ matrix.netVersion }}
-          dotnet restore EpubSharp.Tests/EpubSharp.Tests.csproj -c Release -p:NetVersion=${{ matrix.netVersion }}
+          dotnet restore EpubSharp/EpubSharp.csproj -p:NetVersion=${{ matrix.netVersion }}
+          dotnet restore EpubSharp.Tests/EpubSharp.Tests.csproj -p:NetVersion=${{ matrix.netVersion }}
 
       - name: Build
         run: |
@@ -70,7 +71,7 @@ jobs:
           path: ./all-release-files
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
           files: ./all-release-files/*
           generate_release_notes: true
