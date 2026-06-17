@@ -8,8 +8,8 @@ namespace EpubSharp.Format.Readers
     {
         public static OcfDocument Read(XDocument xml)
         {
-            ArgumentNullException.ThrowIfNull(xml);
-            if (xml.Root == null) throw new ArgumentException("XML document has no root element.", nameof(xml));
+            Guard.NotNull(xml);
+            Guard.IsTrue(xml.Root != null, "XML document has no root element.");
 
             var rootFiles = xml.Root?.Element(OcfElements.RootFiles)?.Elements(OcfElements.RootFile);
             var ocf = new OcfDocument

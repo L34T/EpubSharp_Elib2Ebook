@@ -7,7 +7,7 @@ namespace EpubSharp.Extensions
         public static string GetDirectoryPath(string filePath)
         {
             var lastSlashIndex = filePath.LastIndexOf('/');
-            var dir = lastSlashIndex == -1 ? string.Empty : filePath[..lastSlashIndex];
+            var dir = lastSlashIndex == -1 ? string.Empty : filePath.Substring(0, lastSlashIndex);
             if (dir == "/")
             {
                 dir = "";
@@ -21,14 +21,14 @@ namespace EpubSharp.Extensions
             string ensurePrefix(string str, string prefix) =>
                 str.StartsWith(prefix) ? str : prefix + str;
 
-            if (string.IsNullOrEmpty(directory) || filename.StartsWith('/'))
+            if (string.IsNullOrEmpty(directory) || filename.StartsWith("/"))
             {
                 return ensurePrefix(filename, "/");
             }
 
-            if (directory.EndsWith('/'))
+            if (directory.EndsWith("/"))
             {
-                directory = directory[..^1];
+                directory = directory.Substring(0, directory.Length - 1);
             }
 
             while (true)
@@ -43,11 +43,11 @@ namespace EpubSharp.Extensions
                     }
 
                     directory = newDir;
-                    filename = filename[3..];
+                    filename = filename.Substring(3);
                 }
                 else if (filename.StartsWith("./"))
                 {
-                    filename = filename[2..];
+                    filename = filename.Substring(2);
                 }
                 else
                 {
@@ -61,7 +61,7 @@ namespace EpubSharp.Extensions
             }
             else
             {
-                if (!directory.StartsWith('/')) directory = "/" + directory;
+                if (!directory.StartsWith("/")) directory = "/" + directory;
                 return string.Concat(directory, "/", filename);
             }
         }

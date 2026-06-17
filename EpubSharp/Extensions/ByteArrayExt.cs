@@ -7,23 +7,17 @@ namespace EpubSharp.Extensions
     {
         public static byte[] TrimEncodingPreamble(this byte[] data)
         {
+            Guard.NotNull(data);
+            
             var preamble = Constants.DefaultEncoding.GetPreamble();
-            if (data.Length < preamble.Length)
+            ReadOnlySpan<byte> dataSpan = data;
+            
+            if (dataSpan.StartsWith(preamble))
             {
-                return data;
+                return dataSpan.Slice(preamble.Length).ToArray();
             }
 
-            for (var i = 0; i < preamble.Length; ++i)
-            {
-                if (data[i] != preamble[i])
-                {
-                    return data;
-                }
-            }
-
-            var newData = new byte[data.Length - preamble.Length];
-            Array.Copy(data, preamble.Length, newData, 0, newData.Length);
-            return newData;
+            return data;
         }
     }
 }

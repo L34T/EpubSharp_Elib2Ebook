@@ -7,7 +7,7 @@ namespace EpubSharp.Format.Writers
     {
         public static string Format(string opfPath)
         {
-            if (string.IsNullOrWhiteSpace(opfPath)) throw new ArgumentNullException(nameof(opfPath));
+            Guard.NotNullOrWhiteSpace(opfPath);
 
             var container = new XElement(OcfElements.Container);
             container.Add(new XAttribute("xmlns", Constants.OcfNamespace));

@@ -1,0 +1,30 @@
+* text=auto eol=lf
+
+*.cs text diff=csharp
+*.csproj text merge=union
+*.sln text merge=union
+*.md text diff=markdown
+*.json text
+*.yml text
+*.sh text eol=lf
+*.ps1 text
+
+*.bat text eol=crlf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.avif binary
+*.jxl binary
+*.ttf binary
+*.otf binary
+*.zip binary
+*.epub binary
+*.dll binary
+*.pdb binary
+*.exe binary
+
+*.sh linguist-language=Shell
+*.ps1 linguist-language=PowerShell

@@ -9,8 +9,8 @@ namespace EpubSharp.Format.Readers
     {
         public static NcxDocument Read(XDocument xml)
         {
-            ArgumentNullException.ThrowIfNull(xml);
-            if (xml.Root == null) throw new ArgumentException("XML document has no root element.", nameof(xml));
+            Guard.NotNull(xml);
+            Guard.IsTrue(xml.Root != null, "XML document has no root element.");
 
             var navMap = xml.Root.Element(NcxElements.NavMap);
             var pageList = xml.Root.Element(NcxElements.PageList);
@@ -77,7 +77,7 @@ namespace EpubSharp.Format.Readers
 
         private static NcxNavPoint ReadNavPoint(XElement element)
         {
-            ArgumentNullException.ThrowIfNull(element);
+            Guard.NotNull(element);
             if (element.Name != NcxElements.NavPoint)
                 throw new ArgumentException("The element is not <navPoint>", nameof(element));
 

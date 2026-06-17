@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
@@ -73,13 +73,43 @@ namespace EpubSharp.Format.Writers
         {
             var root = new XElement(OpfElements.Metadata);
 
-            foreach (var contributor in metadata.Contributors)
+            WriteContributors(root, metadata.Contributors);
+            WriteSimpleElements(root, metadata.Descriptions, OpfElements.Description);
+            WriteSimpleElements(root, metadata.Languages, OpfElements.Language);
+            WriteSimpleElements(root, metadata.Titles, OpfElements.Title);
+            WriteCreators(root, metadata.Creators);
+            WriteSimpleElements(root, metadata.Publishers, OpfElements.Publisher);
+            WriteSimpleElements(root, metadata.Subjects, OpfElements.Subject);
+            WriteMetas(root, metadata.Metas, version);
+            WriteLinks(root, metadata.Links);
+            WriteSimpleElements(root, metadata.Coverages, OpfElements.Coverages);
+            WriteDates(root, metadata.Dates);
+            WriteSimpleElements(root, metadata.Formats, OpfElements.Format);
+            WriteIdentifiers(root, metadata.Identifiers, version);
+            WriteSimpleElements(root, metadata.Relations, OpfElements.Relation);
+            WriteSimpleElements(root, metadata.Rights, OpfElements.Rights);
+            WriteSimpleElements(root, metadata.Sources, OpfElements.Source);
+            WriteSimpleElements(root, metadata.Types, OpfElements.Type);
+
+            return root;
+        }
+
+        private static void WriteSimpleElements(XElement root, IEnumerable<string> items, XName name)
+        {
+            foreach (var item in items)
+            {
+                root.Add(new XElement(name, item));
+            }
+        }
+
+        private static void WriteContributors(XElement root, IEnumerable<OpfMetadataCreator> contributors)
+        {
+            foreach (var contributor in contributors)
             {
                 var element = new XElement(OpfElements.Contributor, contributor.Text);
                 if (!string.IsNullOrWhiteSpace(contributor.AlternateScript))
                 {
-                    element.Add(new XAttribute(OpfMetadataCreator.Attributes.AlternateScript,
-                        contributor.AlternateScript));
+                    element.Add(new XAttribute(OpfMetadataCreator.Attributes.AlternateScript, contributor.AlternateScript));
                 }
 
                 if (!string.IsNullOrWhiteSpace(contributor.FileAs))
@@ -94,23 +124,11 @@ namespace EpubSharp.Format.Writers
 
                 root.Add(element);
             }
+        }
 
-            foreach (var description in metadata.Descriptions)
-            {
-                root.Add(new XElement(OpfElements.Description, description));
-            }
-
-            foreach (var lang in metadata.Languages)
-            {
-                root.Add(new XElement(OpfElements.Language, lang));
-            }
-
-            foreach (var title in metadata.Titles)
-            {
-                root.Add(new XElement(OpfElements.Title, title));
-            }
-
-            foreach (var creator in metadata.Creators)
+        private static void WriteCreators(XElement root, IEnumerable<OpfMetadataCreator> creators)
+        {
+            foreach (var creator in creators)
             {
                 var element = new XElement(OpfElements.Creator, creator.Text);
                 if (!string.IsNullOrWhiteSpace(creator.AlternateScript))
@@ -130,26 +148,17 @@ namespace EpubSharp.Format.Writers
 
                 root.Add(element);
             }
+        }
 
-            foreach (var publisher in metadata.Publishers)
-            {
-                root.Add(new XElement(OpfElements.Publisher, publisher));
-            }
-
-            foreach (var subject in metadata.Subjects)
-            {
-                root.Add(new XElement(OpfElements.Subject, subject));
-            }
-
-            foreach (var meta in metadata.Metas)
+        private static void WriteMetas(XElement root, IEnumerable<OpfMetadataMeta> metas, EpubVersion version)
+        {
+            foreach (var meta in metas)
             {
                 var element = new XElement(OpfElements.Meta);
 
                 switch (version)
                 {
                     case EpubVersion.Epub2:
-                        // EPUB 2: meta values are stored as the "content" attribute.
-                        // The reader maps the "content" attribute to meta.Text, so write it back.
                         if (meta.Text != null)
                         {
                             element.Add(new XAttribute(OpfMetadataMeta.Attributes.Content, meta.Text));
@@ -157,8 +166,6 @@ namespace EpubSharp.Format.Writers
                         break;
                     case EpubVersion.Epub3:
                     case EpubVersion.Epub34:
-                        // EPUB 3 native style: property-based metas carry their value as text content.
-                        // EPUB 2-compatible metas (name + content) are handled via the Content property below.
                         if (meta.Property != null)
                         {
                             element.Add(meta.Text);
@@ -168,8 +175,6 @@ namespace EpubSharp.Format.Writers
                         throw new NotImplementedException($"Epub version not supported: {version} ({nameof(OpfWriter)})");
                 }
 
-                // Write "content" attribute for EPUB 2-style metas inside EPUB 3 packages
-                // (e.g. <meta name="cover" content="cover-image"/>).
                 if (!string.IsNullOrWhiteSpace(meta.Content))
                 {
                     element.Add(new XAttribute(OpfMetadataMeta.Attributes.Content, meta.Content));
@@ -202,8 +207,11 @@ namespace EpubSharp.Format.Writers
 
                 root.Add(element);
             }
+        }
 
-            foreach (var link in metadata.Links ?? Array.Empty<OpfMetadataLink>())
+        private static void WriteLinks(XElement root, IEnumerable<OpfMetadataLink> links)
+        {
+            foreach (var link in links ?? Array.Empty<OpfMetadataLink>())
             {
                 var element = new XElement(OpfElements.Link);
 
@@ -239,19 +247,16 @@ namespace EpubSharp.Format.Writers
 
                 if (link.Properties != null && link.Properties.Any())
                 {
-                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Properties,
-                        string.Join(" ", link.Properties)));
+                    element.Add(new XAttribute(OpfMetadataLink.Attributes.Properties, string.Join(" ", link.Properties)));
                 }
 
                 root.Add(element);
             }
+        }
 
-            foreach (var coverage in metadata.Coverages)
-            {
-                root.Add(new XElement(OpfElements.Coverages, coverage));
-            }
-
-            foreach (var date in metadata.Dates)
+        private static void WriteDates(XElement root, IEnumerable<OpfMetadataDate> dates)
+        {
+            foreach (var date in dates)
             {
                 var element = new XElement(OpfElements.Date, date.Text);
                 if (!string.IsNullOrWhiteSpace(date.Event))
@@ -261,13 +266,11 @@ namespace EpubSharp.Format.Writers
 
                 root.Add(element);
             }
+        }
 
-            foreach (var format in metadata.Formats)
-            {
-                root.Add(new XElement(OpfElements.Format, format));
-            }
-
-            foreach (var identifier in metadata.Identifiers)
+        private static void WriteIdentifiers(XElement root, IEnumerable<OpfMetadataIdentifier> identifiers, EpubVersion version)
+        {
+            foreach (var identifier in identifiers)
             {
                 var element = new XElement(OpfElements.Identifier, identifier.Text);
                 if (!string.IsNullOrWhiteSpace(identifier.Id))
@@ -275,7 +278,6 @@ namespace EpubSharp.Format.Writers
                     element.Add(new XAttribute(OpfMetadataIdentifier.Attributes.Id, identifier.Id));
                 }
 
-                // EPUB 3.x: dc:identifier has no 'scheme' attribute (use meta property="identifier-type" if needed).
                 if (version == EpubVersion.Epub2 && !string.IsNullOrWhiteSpace(identifier.Scheme))
                 {
                     element.Add(new XAttribute(OpfMetadataIdentifier.Attributes.Scheme, identifier.Scheme));
@@ -283,28 +285,6 @@ namespace EpubSharp.Format.Writers
 
                 root.Add(element);
             }
-
-            foreach (var relation in metadata.Relations)
-            {
-                root.Add(new XElement(OpfElements.Relation, relation));
-            }
-
-            foreach (var right in metadata.Rights)
-            {
-                root.Add(new XElement(OpfElements.Rights, right));
-            }
-
-            foreach (var source in metadata.Sources)
-            {
-                root.Add(new XElement(OpfElements.Source, source));
-            }
-
-            foreach (var type in metadata.Types)
-            {
-                root.Add(new XElement(OpfElements.Type, type));
-            }
-
-            return root;
         }
 
         private static XElement WriteManifest(OpfManifest manifest)

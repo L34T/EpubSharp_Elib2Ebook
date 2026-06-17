@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+using System.Collections.Generic;
 
 namespace EpubSharp.Format
 {
@@ -21,37 +20,76 @@ namespace EpubSharp.Format
         Other,
         ImageWebp,
         ImageAvif,
-        ImageJxl
+        ImageJxl,
+        FontWoff,
+        FontWoff2,
+        FontSfnt,
+        AudioMpeg,
+        AudioMp4,
+        AudioOggOpus
     }
 
     internal class ContentType
     {
-        public static readonly IReadOnlyDictionary<string, EpubContentType> MimeTypeToContentType =
-            new Dictionary<string, EpubContentType>
+        private static readonly (EpubContentType Type, string Mime, bool IsPrimary)[] Mappings = new[]
+        {
+            (EpubContentType.Xhtml11, "application/xhtml+xml", true),
+            (EpubContentType.Dtbook, "application/x-dtbook+xml", true),
+            (EpubContentType.DtbookNcx, "application/x-dtbncx+xml", true),
+            (EpubContentType.Oeb1Document, "text/x-oeb1-document", true),
+            (EpubContentType.Xml, "application/xml", true),
+            (EpubContentType.Css, "text/css", true),
+            (EpubContentType.Oeb1Css, "text/x-oeb1-css", true),
+            
+            // Images
+            (EpubContentType.ImageGif, "image/gif", true),
+            (EpubContentType.ImageJpeg, "image/jpeg", true),
+            (EpubContentType.ImagePng, "image/png", true),
+            (EpubContentType.ImageSvg, "image/svg+xml", true),
+            (EpubContentType.ImageWebp, "image/webp", true),
+            (EpubContentType.ImageAvif, "image/avif", true),
+            (EpubContentType.ImageJxl, "image/jxl", true),
+            
+            // Fonts
+            (EpubContentType.FontTruetype, "font/ttf", true),
+            (EpubContentType.FontTruetype, "font/truetype", false),
+            (EpubContentType.FontTruetype, "application/x-font-ttf", false),
+            (EpubContentType.FontOpentype, "font/opentype", true),
+            (EpubContentType.FontOpentype, "application/vnd.ms-opentype", false),
+            (EpubContentType.FontWoff, "font/woff", true),
+            (EpubContentType.FontWoff, "application/font-woff", false),
+            (EpubContentType.FontWoff2, "font/woff2", true),
+            (EpubContentType.FontSfnt, "application/font-sfnt", true),
+            
+            // Audio
+            (EpubContentType.AudioMpeg, "audio/mpeg", true),
+            (EpubContentType.AudioMp4, "audio/mp4", true),
+            (EpubContentType.AudioMp4, "audio/mp4; codecs=aac", false),
+            (EpubContentType.AudioMp4, "audio/mp4; codecs=opus", false),
+            (EpubContentType.AudioOggOpus, "audio/ogg; codecs=opus", true),
+            
+            (EpubContentType.Other, "application/octet-stream", true)
+        };
+
+        public static readonly IReadOnlyDictionary<string, EpubContentType> MimeTypeToContentType;
+        public static readonly IReadOnlyDictionary<EpubContentType, string> ContentTypeToMimeType;
+
+        static ContentType()
+        {
+            var mimeToType = new Dictionary<string, EpubContentType>(System.StringComparer.OrdinalIgnoreCase);
+            var typeToMime = new Dictionary<EpubContentType, string>();
+
+            foreach (var m in Mappings)
             {
-                { "application/xhtml+xml", EpubContentType.Xhtml11 },
-                { "application/x-dtbook+xml", EpubContentType.Dtbook },
-                { "application/x-dtbncx+xml", EpubContentType.DtbookNcx },
-                { "text/x-oeb1-document", EpubContentType.Oeb1Document },
-                { "application/xml", EpubContentType.Xml },
-                { "text/css", EpubContentType.Css },
-                { "text/x-oeb1-css", EpubContentType.Oeb1Css },
-                { "image/gif", EpubContentType.ImageGif },
-                { "image/jpeg", EpubContentType.ImageJpeg },
-                { "image/png", EpubContentType.ImagePng },
-                { "image/svg+xml", EpubContentType.ImageSvg },
-                { "font/truetype", EpubContentType.FontTruetype },
-                { "font/opentype", EpubContentType.FontOpentype },
-                { "application/vnd.ms-opentype", EpubContentType.FontOpentype },
+                mimeToType[m.Mime] = m.Type;
+                if (m.IsPrimary)
+                {
+                    typeToMime[m.Type] = m.Mime;
+                }
+            }
 
-                { "image/webp", EpubContentType.ImageWebp },
-                { "image/avif", EpubContentType.ImageAvif },
-                { "image/jxl", EpubContentType.ImageJxl }
-            };
-
-        public static readonly IReadOnlyDictionary<EpubContentType, string> ContentTypeToMimeType =
-            MimeTypeToContentType
-                .Where(pair => pair.Key != "application/vnd.ms-opentype") // Because it's defined twice.
-                .ToDictionary(pair => pair.Value, pair => pair.Key);
+            MimeTypeToContentType = mimeToType;
+            ContentTypeToMimeType = typeToMime;
+        }
     }
 }

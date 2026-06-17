@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Xml.Linq;
@@ -9,42 +9,20 @@ namespace EpubSharp.Format.Writers
     {
         public static string Format(NcxDocument ncx)
         {
-            ArgumentNullException.ThrowIfNull(ncx);
+            Guard.NotNull(ncx);
 
             var root = new XElement(NcxElements.Ncx);
             root.Add(new XAttribute("xmlns", Constants.NcxNamespace));
+            root.Add(new XAttribute("version", "2005-1"));
 
-            var head = new XElement(NcxElements.Head);
-            foreach (var meta in ncx.Meta)
-            {
-                var element = new XElement(NcxElements.Meta);
-                if (meta.Content != null)
-                {
-                    element.Add(new XAttribute(NcxMeta.Attributes.Content, meta.Content));
-                }
-
-                if (!string.IsNullOrWhiteSpace(meta.Name))
-                {
-                    element.Add(new XAttribute(NcxMeta.Attributes.Name, meta.Name));
-                }
-
-                if (!string.IsNullOrWhiteSpace(meta.Scheme))
-                {
-                    element.Add(new XAttribute(NcxMeta.Attributes.Scheme, meta.Scheme));
-                }
-
-                head.Add(element);
-            }
-
-            root.Add(head);
+            root.Add(WriteHead(ncx.Meta));
 
             if (!string.IsNullOrWhiteSpace(ncx.DocTitle))
             {
                 root.Add(new XElement(NcxElements.DocTitle, new XElement(NcxElements.Text, ncx.DocTitle)));
             }
 
-            // Null check instead of string.IsNullOrWhiteSpace(), because I've seen epubs having <docAuthor><text/></docAuthor>
-            if (ncx.DocAuthor != null)
+            if (!string.IsNullOrWhiteSpace(ncx.DocAuthor))
             {
                 root.Add(new XElement(NcxElements.DocAuthor, new XElement(NcxElements.Text, ncx.DocAuthor)));
             }
@@ -55,78 +33,86 @@ namespace EpubSharp.Format.Writers
 
             if (ncx.PageList != null)
             {
-                var pageListElement = new XElement(NcxElements.PageList);
-
-                if (ncx.PageList.NavInfo != null)
-                {
-                    pageListElement.Add(new XElement(NcxElements.NavInfo,
-                        new XElement(NcxElements.Text, ncx.PageList.NavInfo.Text)));
-                }
-
-                foreach (var pageTarget in ncx.PageList.PageTargets)
-                {
-                    var pageTargetElement = new XElement(NcxElements.PageTarget);
-                    if (!string.IsNullOrWhiteSpace(pageTarget.Class))
-                    {
-                        pageTargetElement.Add(new XAttribute(NcxPageTarget.Attributes.Class, pageTarget.Class));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(pageTarget.Id))
-                    {
-                        pageTargetElement.Add(new XAttribute(NcxPageTarget.Attributes.Id, pageTarget.Id));
-                    }
-
-                    if (pageTarget.Type.HasValue)
-                    {
-                        pageTargetElement.Add(new XAttribute(NcxPageTarget.Attributes.Type, pageTarget.Type.Value));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(pageTarget.Value))
-                    {
-                        pageTargetElement.Add(new XAttribute(NcxPageTarget.Attributes.Value, pageTarget.Value));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(pageTarget.NavLabelText))
-                    {
-                        pageTargetElement.Add(new XElement(NcxElements.NavLabel,
-                            new XElement(NcxElements.Text, pageTarget.NavLabelText)));
-                    }
-
-                    if (!string.IsNullOrWhiteSpace(pageTarget.ContentSrc))
-                    {
-                        pageTargetElement.Add(new XElement(NcxElements.Content,
-                            new XAttribute(NcxPageTarget.Attributes.ContentSrc, pageTarget.ContentSrc)));
-                    }
-
-                    pageListElement.Add(pageTargetElement);
-                }
-
-                root.Add(pageListElement);
+                root.Add(WritePageList(ncx.PageList));
             }
 
             var xml = Constants.XmlDeclaration + "\n" + root;
             return xml;
         }
 
+        private static void AddAttributeIfNotNull(XElement element, XName name, object value)
+        {
+            if (value != null)
+            {
+                element.Add(new XAttribute(name, value));
+            }
+        }
+
+        private static XElement WriteHead(IList<NcxMeta> metas)
+        {
+            var head = new XElement(NcxElements.Head);
+            foreach (var meta in metas)
+            {
+                var element = new XElement(NcxElements.Meta);
+                AddAttributeIfNotNull(element, NcxMeta.Attributes.Name, meta.Name);
+                AddAttributeIfNotNull(element, NcxMeta.Attributes.Content, meta.Content);
+                AddAttributeIfNotNull(element, NcxMeta.Attributes.Scheme, meta.Scheme);
+                head.Add(element);
+            }
+            return head;
+        }
+
+        private static XElement WritePageList(NcxPageList pageList)
+        {
+            var pageListElement = new XElement(NcxElements.PageList);
+            if (pageList.NavInfo != null)
+            {
+                pageListElement.Add(new XElement(NcxElements.NavInfo, new XElement(NcxElements.Text, pageList.NavInfo.Text)));
+            }
+
+            foreach (var target in pageList.PageTargets)
+            {
+                var targetElement = new XElement(NcxElements.PageTarget);
+                AddAttributeIfNotNull(targetElement, NcxPageTarget.Attributes.Id, target.Id);
+                AddAttributeIfNotNull(targetElement, NcxPageTarget.Attributes.Value, target.Value);
+                AddAttributeIfNotNull(targetElement, NcxPageTarget.Attributes.Type, target.Type?.ToString()?.ToLower());
+                AddAttributeIfNotNull(targetElement, NcxPageTarget.Attributes.Class, target.Class);
+
+                if (target.NavLabelText != null)
+                {
+                    targetElement.Add(new XElement(NcxElements.NavLabel, new XElement(NcxElements.Text, target.NavLabelText)));
+                }
+
+                if (target.ContentSrc != null)
+                {
+                    targetElement.Add(new XElement(NcxElements.Content, new XAttribute(NcxPageTarget.Attributes.ContentSrc, target.ContentSrc)));
+                }
+
+                pageListElement.Add(targetElement);
+            }
+            return pageListElement;
+        }
+
         private static void WriteNavPoints(XElement root, IEnumerable<NcxNavPoint> navPoints)
         {
             foreach (var navPoint in navPoints)
             {
-                var element = new XElement(NcxElements.NavPoint,
-                    new XAttribute(NcxNavPoint.Attributes.Id, navPoint.Id));
-                if (!string.IsNullOrWhiteSpace(navPoint.Class))
+                var element = new XElement(NcxElements.NavPoint);
+
+                AddAttributeIfNotNull(element, NcxNavPoint.Attributes.Id, navPoint.Id);
+                AddAttributeIfNotNull(element, NcxNavPoint.Attributes.Class, navPoint.Class);
+                AddAttributeIfNotNull(element, NcxNavPoint.Attributes.PlayOrder, navPoint.PlayOrder);
+
+                if (navPoint.NavLabelText != null)
                 {
-                    element.Add(new XAttribute(NcxNavPoint.Attributes.Class, navPoint.Class));
+                    element.Add(new XElement(NcxElements.NavLabel, new XElement(NcxElements.Text, navPoint.NavLabelText)));
                 }
 
-                if (navPoint.PlayOrder.HasValue)
+                if (navPoint.ContentSrc != null)
                 {
-                    element.Add(new XAttribute(NcxNavPoint.Attributes.PlayOrder, navPoint.PlayOrder.Value));
+                    element.Add(new XElement(NcxElements.Content, new XAttribute(NcxNavPoint.Attributes.ContentSrc, navPoint.ContentSrc)));
                 }
 
-                element.Add(new XElement(NcxElements.NavLabel, new XElement(NcxElements.Text, navPoint.NavLabelText)));
-                element.Add(new XElement(NcxElements.Content,
-                    new XAttribute(NcxNavPoint.Attributes.ContentSrc, navPoint.ContentSrc)));
                 root.Add(element);
 
                 if (navPoint.NavPoints.Any())

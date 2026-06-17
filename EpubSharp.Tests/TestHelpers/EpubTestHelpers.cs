@@ -1,4 +1,4 @@
-﻿#nullable enable
+#nullable enable
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -14,9 +14,9 @@ namespace EpubSharp.Tests.TestHelpers;
 public static class EpubTestHelpers
 {
     public static readonly XNamespace OpfNs = "http://www.idpf.org/2007/opf";
+    public static readonly XNamespace OpsNs = "http://www.idpf.org/2007/ops";
     public static readonly XNamespace DcNs = "http://purl.org/dc/elements/1.1/";
     public static readonly XNamespace XhtmlNs = "http://www.w3.org/1999/xhtml";
-    public static readonly XNamespace EpubNs = "http://www.idpf.org/2007/ops";
 
     public static async Task<byte[]> WriteEpubAsync(Action<EpubWriter> configure, params EpubSharp.Format.FileMeta[] files)
     {
@@ -38,7 +38,8 @@ public static class EpubTestHelpers
 
     public static string ReadEntryText(ZipArchive zip, string fullName)
     {
-        var entry = zip.GetEntry(fullName) ?? throw new Exception($"Missing zip entry: {fullName}");
+        var entry = zip.GetEntry(fullName);
+        if (entry == null) throw new Exception($"Missing zip entry: {fullName}. Available: " + string.Join(", ", zip.Entries.Select(e => e.FullName)));
         using var s = entry.Open();
         using var r = new StreamReader(s, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, leaveOpen: false);
         return r.ReadToEnd();
@@ -49,9 +50,12 @@ public static class EpubTestHelpers
         var containerXml = ReadEntryText(zip, "META-INF/container.xml");
         var doc = XDocument.Parse(containerXml);
         XNamespace ocf = "urn:oasis:names:tc:opendocument:xmlns:container";
-        var rootfile = doc.Root!.Element(ocf + "rootfiles")!.Elements(ocf + "rootfile").FirstOrDefault();
-        var fullPath = (string?)rootfile?.Attribute("full-path");
-        return fullPath ?? throw new Exception("container.xml has no rootfile full-path");
+        var rootfiles = doc.Root?.Element(ocf + "rootfiles");
+        if (rootfiles == null) throw new Exception("container.xml missing <rootfiles>");
+        var rootfile = rootfiles.Elements(ocf + "rootfile").FirstOrDefault();
+        if (rootfile == null) throw new Exception("container.xml missing <rootfile>");
+        var fullPath = (string?)rootfile.Attribute("full-path");
+        return fullPath ?? throw new Exception("container.xml <rootfile> has no full-path");
     }
 
     public static string GetDir(string path)
@@ -68,11 +72,12 @@ public static class EpubTestHelpers
 
     public static IReadOnlyList<ManifestItem> GetManifestItems(XDocument opf)
     {
-        var manifest = opf.Root!.Element(OpfNs + "manifest")!;
+        var manifest = opf.Root?.Element(OpfNs + "manifest");
+        if (manifest == null) throw new Exception("OPF missing <manifest>");
         return manifest.Elements(OpfNs + "item")
             .Select(i =>
             {
-                var props = ((string?)i.Attribute("properties"))?.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>();
+                var props = ((string?)i.Attribute("properties"))?.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).ToList() ?? new List<string>();
                 return new ManifestItem(
                     Id: (string?)i.Attribute("id") ?? string.Empty,
                     Href: (string?)i.Attribute("href") ?? string.Empty,
@@ -83,11 +88,14 @@ public static class EpubTestHelpers
 
     public static HashSet<string> GetSpineHrefs(XDocument opf)
     {
-        var manifestById = opf.Root!.Element(OpfNs + "manifest")!.Elements(OpfNs + "item")
+        var manifest = opf.Root?.Element(OpfNs + "manifest");
+        if (manifest == null) throw new Exception("OPF missing <manifest>");
+        var manifestById = manifest.Elements(OpfNs + "item")
             .Where(i => i.Attribute("id") != null && i.Attribute("href") != null)
             .ToDictionary(i => i.Attribute("id")!.Value, i => i.Attribute("href")!.Value, StringComparer.Ordinal);
 
-        var spine = opf.Root!.Element(OpfNs + "spine")!;
+        var spine = opf.Root?.Element(OpfNs + "spine");
+        if (spine == null) throw new Exception("OPF missing <spine>");
         var hrefs = new HashSet<string>(StringComparer.Ordinal);
         foreach (var itemref in spine.Elements(OpfNs + "itemref"))
         {
@@ -100,7 +108,8 @@ public static class EpubTestHelpers
     public static List<string> GetNavTocHrefs(string navXml)
     {
         var doc = XDocument.Parse(navXml);
-        var toc = doc.Descendants(XhtmlNs + "nav").First(n => (string?)n.Attribute(EpubNs + "type") == "toc");
+        var toc = doc.Descendants(XhtmlNs + "nav").FirstOrDefault(n => (string?)n.Attribute(OpsNs + "type") == "toc");
+        if (toc == null) throw new Exception("nav.xhtml missing <nav epub:type=\"toc\">");
         return toc.Descendants(XhtmlNs + "a")
             .Select(a => (string?)a.Attribute("href"))
             .Where(h => !string.IsNullOrWhiteSpace(h))
@@ -140,8 +149,8 @@ public static class EpubTestHelpers
     {
         var doc = XDocument.Parse(navXml);
         doc.Root!.Name.Should().Be(XhtmlNs + "html");
-        var navs = doc.Descendants(XhtmlNs + "nav").Where(n => (string?)n.Attribute(EpubNs + "type") == "toc").ToList();
-        navs.Should().HaveCount(1);
+        var navs = doc.Descendants(XhtmlNs + "nav").Where(n => (string?)n.Attribute(OpsNs + "type") == "toc").ToList();
+        navs.Should().HaveCount(1, "nav.xhtml must have exactly one TOC nav element");
         navs[0].Descendants(XhtmlNs + "a").Count().Should().Be(expectedLinks);
     }
 

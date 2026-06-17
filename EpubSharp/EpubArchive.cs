@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using System.IO.Compression;
 using EpubSharp.Extensions;
@@ -12,7 +12,7 @@ namespace EpubSharp
 
         public EpubArchive(string filePath)
         {
-            ArgumentNullException.ThrowIfNull(filePath);
+            Guard.NotNull(filePath);
 
             if (!File.Exists(filePath))
             {
@@ -44,7 +44,7 @@ namespace EpubSharp
         /// <returns></returns>
         public ZipArchiveEntry FindEntry(string path)
         {
-            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentNullException(nameof(path));
+            Guard.NotNullOrWhiteSpace(path);
             return archive.TryGetEntryImproved(path);
         }
     }

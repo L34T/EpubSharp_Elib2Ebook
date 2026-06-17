@@ -9,8 +9,8 @@ namespace EpubSharp.Format.Readers
     {
         public static NavDocument Read(XDocument xml)
         {
-            ArgumentNullException.ThrowIfNull(xml);
-            if (xml.Root == null) throw new ArgumentException("XML document has no root element.", nameof(xml));
+            Guard.NotNull(xml);
+            Guard.IsTrue(xml.Root != null, "XML document has no root element.");
 
             var ns = xml.Root.Name.Namespace;
 

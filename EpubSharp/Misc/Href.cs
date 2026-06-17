@@ -9,17 +9,20 @@ namespace EpubSharp.Misc
 
         public Href(string href)
         {
-            if (string.IsNullOrWhiteSpace(href)) throw new ArgumentNullException(nameof(href));
+            Guard.NotNullOrWhiteSpace(href);
 
-            var contentSourceAnchorCharIndex = href.IndexOf('#');
+            ReadOnlySpan<char> span = href.AsSpan();
+            var contentSourceAnchorCharIndex = span.IndexOf('#');
+            
             if (contentSourceAnchorCharIndex == -1)
             {
                 Path = href;
+                HashLocation = string.Empty;
             }
             else
             {
-                Path = href.Substring(0, contentSourceAnchorCharIndex);
-                HashLocation = href.Substring(contentSourceAnchorCharIndex + 1);
+                Path = span.Slice(0, contentSourceAnchorCharIndex).ToString();
+                HashLocation = span.Slice(contentSourceAnchorCharIndex + 1).ToString();
             }
         }
     }

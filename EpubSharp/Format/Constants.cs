@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System;
+using System.Text;
 using System.Xml.Linq;
 
 namespace EpubSharp.Format
@@ -25,5 +26,8 @@ namespace EpubSharp.Format
         public const string DefaultOpfUniqueIdentifier = "uuid_id";
 
         public static readonly Encoding DefaultEncoding = Encoding.UTF8;
+
+        public const int DefaultRegexTimeoutMilliseconds = 1000;
+        public static readonly TimeSpan DefaultRegexTimeout = TimeSpan.FromMilliseconds(DefaultRegexTimeoutMilliseconds);
     }
 }

@@ -1,6 +1,7 @@
-﻿using System;
+using System;
 using System.Net;
 using System.Text.RegularExpressions;
+using EpubSharp.Format;
 
 namespace EpubSharp.Misc
 {
@@ -20,11 +21,11 @@ namespace EpubSharp.Misc
 
         public static string GetContentAsPlainText(string html)
         {
-            if (string.IsNullOrWhiteSpace(html)) throw new ArgumentNullException(nameof(html));
+            Guard.NotNullOrWhiteSpace(html);
 
             html = html.Trim();
             html = MyRegex().Replace(html, "");
-            var match = Regex.Match(html, @"<body[^>]*>.+</body>", RegexOptionsIgnoreCaseSingleLine);
+            var match = Regex.Match(html, @"<body[^>]*>.+</body>", RegexOptionsIgnoreCaseSingleLine, Constants.DefaultRegexTimeout);
             return match.Success ? ClearText(match.Value).Trim(' ', '\r', '\n') : "";
         }
 
@@ -40,7 +41,7 @@ namespace EpubSharp.Misc
 
         private static string RemoveHtmlTags(string text)
         {
-            return text == null ? null : Regex.Replace(text, @"</?(\w+|\s*!--)[^>]*>", " ", RegexOptions);
+            return text == null ? null : Regex.Replace(text, @"</?(\w+|\s*!--)[^>]*>", " ", RegexOptions, Constants.DefaultRegexTimeout);
         }
 
         private static string ReplaceBlockTagsWithNewLines(string text)
@@ -48,7 +49,7 @@ namespace EpubSharp.Misc
             return text == null
                 ? null
                 : Regex.Replace(text, @"(?<!^\s*)<(p|div|h1|h2|h3|h4|h5|h6)[^>]*>", "\n",
-                    RegexOptionsIgnoreCaseMultiLine);
+                    RegexOptionsIgnoreCaseMultiLine, Constants.DefaultRegexTimeout);
         }
 
         private static string DecodeHtmlSymbols(string text)
@@ -56,8 +57,8 @@ namespace EpubSharp.Misc
             if (text == null) return null;
             var regex = new Regex(
                 @"(?<defined>(&nbsp|&quot|&mdash|&ldquo|&rdquo|\&\#8211|\&\#8212|&\#8230|\&\#171|&laquo|&raquo|&amp);?)|(?<other>\&\#\d+;?)",
-                RegexOptionsIgnoreCase);
-            text = Regex.Replace(regex.Replace(text, SpecialSymbolsEvaluator), @"\ {2,}", " ", RegexOptions);
+                RegexOptionsIgnoreCase, Constants.DefaultRegexTimeout);
+            text = Regex.Replace(regex.Replace(text, SpecialSymbolsEvaluator), @"\ {2,}", " ", RegexOptions, Constants.DefaultRegexTimeout);
             text = WebUtility.HtmlDecode(text);
             return text;
         }
@@ -94,7 +95,12 @@ namespace EpubSharp.Misc
             }
         }
 
-        [GeneratedRegex(@"\r\n?|\n")]
+#if NET7_0_OR_GREATER
+        [GeneratedRegex(@"\r\n?|\n", RegexOptions.None, Constants.DefaultRegexTimeoutMilliseconds)]
         private static partial Regex MyRegex();
+#else
+        private static readonly Regex _myRegex = new Regex(@"\r\n?|\n", RegexOptions.None, Constants.DefaultRegexTimeout);
+        private static Regex MyRegex() => _myRegex;
+#endif
     }
 }

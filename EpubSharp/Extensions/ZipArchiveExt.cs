@@ -21,12 +21,15 @@ namespace EpubSharp.Extensions
         public static async Task CreateEntry(this ZipArchive archive, string file, byte[] data)
         {
             var entry = archive.CreateEntry(file);
+#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
             await using var stream = entry.Open();
             await stream.WriteAsync(data);
-            // using (var stream = entry.Open())
-            // {
-            //     stream.Write(data, 0, data.Length);
-            // }
+#else
+            using (var stream = entry.Open())
+            {
+                await stream.WriteAsync(data, 0, data.Length);
+            }
+#endif
         }
 
         /// <summary>
@@ -46,10 +49,17 @@ namespace EpubSharp.Extensions
         public static async Task CreateEntryByPath(this ZipArchive archive, string name, string path)
         {
             var entry = archive.CreateEntry(name, CompressionLevel.Optimal);
+#if NETCOREAPP3_0_OR_GREATER || NETSTANDARD2_1_OR_GREATER
             await using var fileStream = File.OpenRead(path);
             await using var entryStream = entry.Open();
-
             await fileStream.CopyToAsync(entryStream);
+#else
+            using (var fileStream = File.OpenRead(path))
+            using (var entryStream = entry.Open())
+            {
+                await fileStream.CopyToAsync(entryStream);
+            }
+#endif
         }
 
         public static ZipArchiveEntry TryGetEntryImproved(this ZipArchive archive, string entryName)
@@ -58,7 +68,7 @@ namespace EpubSharp.Extensions
             // That is, they should not include a leading '/' character.
             // Therefore for performance reasons to maximize a match on first attempt
             // exclude it initially and try with a leading slash in the later attempts.
-            if (entryName.StartsWith('/') || entryName.StartsWith('\\'))
+            if (entryName.StartsWith("/") || entryName.StartsWith("\\"))
             {
                 entryName = entryName.Substring(1);
             }

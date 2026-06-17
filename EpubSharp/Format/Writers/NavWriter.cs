@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Xml.Linq;
 
@@ -19,30 +19,25 @@ namespace EpubSharp.Format.Writers
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="nav"/> is <c>null</c>.</exception>
         public static string Format(NavDocument nav)
         {
-            ArgumentNullException.ThrowIfNull(nav);
+            Guard.NotNull(nav);
 
             var xhtmlNs = Constants.XhtmlNamespace;
             var opsNs = Constants.OpsNamespace;
 
-            // Build <head>
-            var headEl = new XElement(xhtmlNs + NavElements.Head);
-            headEl.Add(new XElement(xhtmlNs + NavElements.Meta, new XAttribute("charset", "utf-8")));
-
-            if (!string.IsNullOrWhiteSpace(nav.Head.Title))
+            // Build <head> – apply namespace if created programmatically without one
+            XElement headEl;
+            if (nav.Head.Dom != null)
             {
-                headEl.Add(new XElement(xhtmlNs + NavElements.Title, nav.Head.Title));
+                headEl = ApplyNamespace(nav.Head.Dom, xhtmlNs);
             }
-
-            foreach (var link in nav.Head.Links)
+            else
             {
-                var linkEl = new XElement(xhtmlNs + NavElements.Link);
-                if (link.Href != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Href, link.Href));
-                if (link.Rel != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Rel, link.Rel));
-                if (link.Type != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Type, link.Type));
-                if (link.Class != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Class, link.Class));
-                if (link.Title != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Title, link.Title));
-                if (link.Media != null) linkEl.Add(new XAttribute(NavHeadLink.Attributes.Media, link.Media));
-                headEl.Add(linkEl);
+                headEl = new XElement(xhtmlNs + NavElements.Head);
+                headEl.Add(new XElement(xhtmlNs + NavElements.Meta, new XAttribute("charset", "utf-8")));
+                if (!string.IsNullOrWhiteSpace(nav.Head.Title))
+                {
+                    headEl.Add(new XElement(xhtmlNs + NavElements.Title, nav.Head.Title));
+                }
             }
 
             // Build <body> – apply the XHTML namespace to any elements that were created
@@ -85,4 +80,3 @@ namespace EpubSharp.Format.Writers
         }
     }
 }
-
